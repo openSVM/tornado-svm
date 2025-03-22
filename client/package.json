@@ -1,0 +1,22 @@
+{
+  "name": "tornado-svm-cli",
+  "version": "0.1.0",
+  "description": "CLI for Tornado Cash Privacy Solution on Solana",
+  "main": "tornado-cli.js",
+  "bin": {
+    "tornado-cli": "./tornado-cli.js"
+  },
+  "scripts": {
+    "start": "node tornado-cli.js"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.73.0",
+    "bn.js": "^5.2.1",
+    "bs58": "^5.0.0",
+    "commander": "^9.4.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "license": "MIT"
+}

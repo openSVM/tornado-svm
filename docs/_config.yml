@@ -1,0 +1,52 @@
+# GitHub Pages configuration for Tornado Cash Privacy Solution for Solana
+
+# Site settings
+title: Tornado Cash Privacy Solution for Solana
+description: Documentation for the Solana implementation of Tornado Cash, a privacy solution based on zkSNARKs
+url: "https://your-username.github.io"
+baseurl: "/tornado-svm"
+
+# Theme settings
+remote_theme: pmarsceill/just-the-docs
+color_scheme: light
+
+# Enable search
+search_enabled: true
+
+# Enable mermaid diagrams
+mermaid:
+  # Version of mermaid library
+  version: "9.1.6"
+  # Set the theme of the diagrams
+  # Available themes: default, forest, dark, neutral
+  theme: default
+
+# Aux links for the upper right navigation
+aux_links:
+  "Tornado Cash on GitHub":
+    - "//github.com/your-username/tornado-svm"
+
+# Makes Aux links open in a new tab
+aux_links_new_tab: true
+
+# Footer content
+footer_content: "Copyright &copy; 2023 Tornado Cash Privacy Solution for Solana. Distributed under the MIT License."
+
+# Back to top link
+back_to_top: true
+back_to_top_text: "Back to top"
+
+# Footer last edited timestamp
+last_edit_timestamp: true
+last_edit_time_format: "%b %e %Y at %I:%M %p"
+
+# Footer "Edit this page on GitHub" link
+gh_edit_link: true
+gh_edit_link_text: "Edit this page on GitHub"
+gh_edit_repository: "https://github.com/your-username/tornado-svm"
+gh_edit_branch: "main"
+gh_edit_view_mode: "tree"
+
+# Google Analytics
+ga_tracking: UA-XXXXXXXXX-X
+ga_tracking_anonymize_ip: true

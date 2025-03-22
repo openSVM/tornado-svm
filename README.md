@@ -1,4 +1,124 @@
-# Tornado Cash Privacy Solution [![build status](https://github.com/tornadocash/tornado-core/actions/workflows/build.yml/badge.svg)](https://github.com/tornadocash/tornado-core/actions/workflows/build.yml) [![Coverage Status](https://coveralls.io/repos/github/tornadocash/tornado-core/badge.svg?branch=master)](https://coveralls.io/github/tornadocash/tornado-core?branch=master)
+# Tornado Cash Privacy Solution for Solana
+
+A privacy solution for Solana based on zkSNARKs. It improves transaction privacy by breaking the on-chain link between the sender and recipient addresses. It uses a Solana program that accepts SOL deposits that can be withdrawn by a different address. Whenever SOL is withdrawn by the new address, there is no way to link the withdrawal to the deposit, ensuring complete privacy.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://img.shields.io/github/workflow/status/your-username/tornado-svm/CI)](https://github.com/your-username/tornado-svm/actions)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://your-username.github.io/tornado-svm/)
+
+## Overview
+
+To make a deposit, a user generates a secret and sends its hash (called a commitment) along with the deposit amount to the Tornado program. The program accepts the deposit and adds the commitment to its Merkle tree of deposits.
+
+Later, the user decides to make a withdrawal. To do that, the user provides a zkSNARK proof that they possess a secret to an unspent commitment from the program's Merkle tree. The zkSNARK technology allows this to happen without revealing which exact deposit corresponds to this secret. The program checks the proof and transfers the deposited funds to the address specified for withdrawal. An external observer will be unable to determine which deposit this withdrawal came from.
+
+## Features
+
+- **Privacy**: Breaks the on-chain link between sender and recipient addresses
+- **Non-custodial**: Users maintain control of their funds at all times
+- **Optimized for Solana**: Designed to be efficient with Solana's compute units
+- **Relayer support**: Allows third-party relayers to pay for gas fees
+- **Multiple denominations**: Supports different deposit amounts
+
+## Architecture
+
+The system consists of the following main components:
+
+```mermaid
+graph TD
+    A[Client] -->|Interact| B[Solana Program]
+    B -->|Store| C[Merkle Tree]
+    B -->|Verify| D[zkSNARK Verifier]
+    E[User] -->|Use| A
+```
+
+For more details, see the [Architecture Overview](https://your-username.github.io/tornado-svm/architecture.html).
+
+## Installation
+
+### Prerequisites
+
+- Rust 1.60+
+- Solana CLI 1.16.0+
+- Node.js 14+
+
+### Build
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/tornado-svm.git
+cd tornado-svm
+
+# Build the Solana program
+cargo build-bpf
+
+# Install the CLI tool
+cd client
+npm install
+```
+
+## Usage
+
+### Initialize a Tornado Instance
+
+```bash
+# Create a new Tornado instance with a denomination of 1 SOL and a Merkle tree height of 20
+npx tornado-cli initialize --denomination 1000000000 --height 20
+```
+
+### Deposit
+
+```bash
+# Generate a commitment
+npx tornado-cli generate-commitment
+
+# Deposit 1 SOL
+npx tornado-cli deposit --instance <INSTANCE_ADDRESS> --commitment <COMMITMENT> --amount 1
+```
+
+### Withdraw
+
+```bash
+# Generate a proof
+npx tornado-cli generate-proof --note <NOTE_PATH> --root <MERKLE_ROOT> --recipient <RECIPIENT_ADDRESS>
+
+# Withdraw to a recipient address
+npx tornado-cli withdraw --instance <INSTANCE_ADDRESS> --proof <PROOF> --root <MERKLE_ROOT> --nullifier-hash <NULLIFIER_HASH> --recipient <RECIPIENT_ADDRESS>
+```
+
+For more detailed usage instructions, see the [Quick Start Guide](https://your-username.github.io/tornado-svm/usage/quick-start.html).
+
+## Documentation
+
+Comprehensive documentation is available at [https://your-username.github.io/tornado-svm/](https://your-username.github.io/tornado-svm/).
+
+The documentation includes:
+
+- [Architecture Overview](https://your-username.github.io/tornado-svm/architecture.html)
+- [Algorithms](https://your-username.github.io/tornado-svm/algorithms/)
+- [Data Structures](https://your-username.github.io/tornado-svm/data-structures/)
+- [Usage Guide](https://your-username.github.io/tornado-svm/usage/)
+- [API Reference](https://your-username.github.io/tornado-svm/api/)
+- [Development Guide](https://your-username.github.io/tornado-svm/development/)
+
+## Security
+
+The security of this program relies on the security of the zkSNARK implementation and the Merkle tree. The zkSNARK proofs ensure that only the owner of a commitment can withdraw the corresponding deposit, and the Merkle tree ensures that each commitment can only be spent once.
+
+## Performance
+
+The program is optimized for Solana's compute units:
+
+- Deposit gas cost: ~200,000 CUs
+- Withdraw gas cost: ~300,000 CUs
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 Tornado Cash is a non-custodial Ethereum and ERC20 privacy solution based on zkSNARKs. It improves transaction privacy by breaking the on-chain link between the recipient and destination addresses. It uses a smart contract that accepts ETH deposits that can be withdrawn by a different address. Whenever ETH is withdrawn by the new address, there is no way to link the withdrawal to the deposit, ensuring complete privacy.
 
