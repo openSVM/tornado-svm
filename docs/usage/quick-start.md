@@ -129,7 +129,7 @@ Withdrawal successful!
 
 Now that you've completed a basic private transaction, you can explore more advanced features:
 
-1. [Using relayers](advanced/relayers.md) to pay for gas fees
+1. [Using relayers](advanced/relayers.md) to pay for transaction fees
 2. [Multiple denominations](advanced/denominations.md) for different transaction sizes
 3. [Custom Merkle tree heights](advanced/merkle-tree-heights.md) for different security levels
 

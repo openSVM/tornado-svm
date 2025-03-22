@@ -28,7 +28,7 @@ graph TD
 - **Privacy**: Breaks the on-chain link between sender and recipient addresses
 - **Non-custodial**: Users maintain control of their funds at all times
 - **Optimized for Solana**: Designed to be efficient with Solana's compute units
-- **Relayer support**: Allows third-party relayers to pay for gas fees
+- **Relayer support**: Allows third-party relayers to pay for transaction fees
 - **Multiple denominations**: Supports different deposit amounts
 
 ## Documentation Sections
