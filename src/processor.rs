@@ -1,4 +1,8 @@
 //! Program processor for the Tornado Cash Privacy Solution
+//!
+//! This module contains the main logic for processing instructions for the
+//! Tornado Cash Privacy Solution for Solana. It handles initialization,
+//! deposits, and withdrawals.
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
@@ -25,14 +29,26 @@ pub struct Processor;
 
 impl Processor {
     /// Process a Tornado Cash instruction
+    ///
+    /// # Arguments
+    ///
+    /// * `program_id` - The program ID
+    /// * `accounts` - The accounts required for the instruction
+    /// * `instruction_data` - The instruction data
+    ///
+    /// # Returns
+    ///
+    /// Returns a `ProgramResult` indicating success or failure
     pub fn process(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
         instruction_data: &[u8],
     ) -> ProgramResult {
+        // Deserialize the instruction data
         let instruction = TornadoInstruction::try_from_slice(instruction_data)
             .map_err(|_| TornadoError::InvalidInstructionData)?;
 
+        // Process the instruction
         match instruction {
             TornadoInstruction::Initialize {
                 denomination,
@@ -71,12 +87,24 @@ impl Processor {
     }
 
     /// Process an Initialize instruction
+    ///
+    /// # Arguments
+    ///
+    /// * `program_id` - The program ID
+    /// * `accounts` - The accounts required for the instruction
+    /// * `denomination` - The denomination amount for this instance
+    /// * `merkle_tree_height` - The height of the Merkle tree
+    ///
+    /// # Returns
+    ///
+    /// Returns a `ProgramResult` indicating success or failure
     fn process_initialize(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
         denomination: u64,
         merkle_tree_height: u8,
     ) -> ProgramResult {
+        // Get the account information
         let account_info_iter = &mut accounts.iter();
         let payer = next_account_info(account_info_iter)?;
         let tornado_instance_info = next_account_info(account_info_iter)?;
@@ -117,15 +145,27 @@ impl Processor {
         // Save the tornado instance
         tornado_instance.serialize(&mut *tornado_instance_info.data.borrow_mut())?;
 
+        msg!("Tornado instance initialized with denomination {} and height {}", denomination, merkle_tree_height);
         Ok(())
     }
 
     /// Process a Deposit instruction
+    ///
+    /// # Arguments
+    ///
+    /// * `program_id` - The program ID
+    /// * `accounts` - The accounts required for the instruction
+    /// * `commitment` - The commitment to deposit
+    ///
+    /// # Returns
+    ///
+    /// Returns a `ProgramResult` indicating success or failure
     fn process_deposit(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
         commitment: &[u8; 32],
     ) -> ProgramResult {
+        // Get the account information
         let account_info_iter = &mut accounts.iter();
         let payer = next_account_info(account_info_iter)?;
         let tornado_instance_info = next_account_info(account_info_iter)?;
@@ -184,6 +224,22 @@ impl Processor {
     }
 
     /// Process a Withdraw instruction
+    ///
+    /// # Arguments
+    ///
+    /// * `program_id` - The program ID
+    /// * `accounts` - The accounts required for the instruction
+    /// * `proof` - The zkSNARK proof
+    /// * `root` - The Merkle root
+    /// * `nullifier_hash` - The nullifier hash
+    /// * `recipient_pubkey` - The recipient public key
+    /// * `relayer_pubkey` - The relayer public key
+    /// * `fee` - The fee to pay to the relayer
+    /// * `refund` - The refund amount (for token instances)
+    ///
+    /// # Returns
+    ///
+    /// Returns a `ProgramResult` indicating success or failure
     fn process_withdraw(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
@@ -195,6 +251,7 @@ impl Processor {
         fee: u64,
         refund: u64,
     ) -> ProgramResult {
+        // Get the account information
         let account_info_iter = &mut accounts.iter();
         let payer = next_account_info(account_info_iter)?;
         let tornado_instance_info = next_account_info(account_info_iter)?;
@@ -289,4 +346,9 @@ impl Processor {
 
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod tests {
+    // Unit tests will be added here
 }

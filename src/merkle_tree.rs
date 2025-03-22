@@ -182,9 +182,23 @@ pub fn is_known_root(
 }
 
 /// Get the last root
+///
+/// # Arguments
+///
+/// * `roots` - The roots history
+/// * `current_root_index` - The current root index
+///
+/// # Returns
+///
+/// Returns the last root
 pub fn get_last_root(
     roots: &[[u8; 32]; ROOT_HISTORY_SIZE],
     current_root_index: u8,
 ) -> [u8; 32] {
     roots[current_root_index as usize]
+}
+
+#[cfg(test)]
+mod tests {
+    // Unit tests will be added here
 }
