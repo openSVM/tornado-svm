@@ -1,4 +1,99 @@
-# Tornado Cash Privacy Solution [![build status](https://github.com/tornadocash/tornado-core/actions/workflows/build.yml/badge.svg)](https://github.com/tornadocash/tornado-core/actions/workflows/build.yml) [![Coverage Status](https://coveralls.io/repos/github/tornadocash/tornado-core/badge.svg?branch=master)](https://coveralls.io/github/tornadocash/tornado-core?branch=master)
+# Tornado Cash Privacy Solution for Solana
+
+A privacy solution for Solana based on zkSNARKs. It improves transaction privacy by breaking the on-chain link between the sender and recipient addresses. It uses a Solana program that accepts SOL deposits that can be withdrawn by a different address. Whenever SOL is withdrawn by the new address, there is no way to link the withdrawal to the deposit, ensuring complete privacy.
+
+## Overview
+
+To make a deposit, a user generates a secret and sends its hash (called a commitment) along with the deposit amount to the Tornado program. The program accepts the deposit and adds the commitment to its Merkle tree of deposits.
+
+Later, the user decides to make a withdrawal. To do that, the user provides a zkSNARK proof that they possess a secret to an unspent commitment from the program's Merkle tree. The zkSNARK technology allows this to happen without revealing which exact deposit corresponds to this secret. The program checks the proof and transfers the deposited funds to the address specified for withdrawal. An external observer will be unable to determine which deposit this withdrawal came from.
+
+## Features
+
+- **Privacy**: Breaks the on-chain link between sender and recipient addresses
+- **Non-custodial**: Users maintain control of their funds at all times
+- **Optimized for Solana**: Designed to be efficient with Solana's compute units
+- **Relayer support**: Allows third-party relayers to pay for gas fees
+- **Multiple denominations**: Supports different deposit amounts
+
+## Architecture
+
+The program consists of the following components:
+
+1. **Tornado Instance**: Manages deposits and withdrawals for a specific denomination
+2. **Merkle Tree**: Stores commitments in a Merkle tree for efficient verification
+3. **Verifier**: Verifies zkSNARK proofs for withdrawals
+4. **Instruction Processor**: Processes program instructions
+
+## Usage
+
+### Initialize a Tornado Instance
+
+```bash
+# Create a new Tornado instance with a denomination of 1 SOL and a Merkle tree height of 20
+solana program call <PROGRAM_ID> initialize 100000000 20
+```
+
+### Deposit
+
+```bash
+# Generate a commitment
+commitment=$(tornado-cli generate-commitment)
+
+# Deposit 1 SOL
+solana program call <PROGRAM_ID> deposit $commitment --amount 1
+```
+
+### Withdraw
+
+```bash
+# Generate a proof
+proof=$(tornado-cli generate-proof $note)
+
+# Withdraw to a recipient address
+solana program call <PROGRAM_ID> withdraw $proof $root $nullifier_hash $recipient $relayer $fee $refund
+```
+
+## Security
+
+The security of this program relies on the security of the zkSNARK implementation and the Merkle tree. The zkSNARK proofs ensure that only the owner of a commitment can withdraw the corresponding deposit, and the Merkle tree ensures that each commitment can only be spent once.
+
+## Performance
+
+The program is optimized for Solana's compute units:
+
+- Deposit gas cost: ~200,000 CUs
+- Withdraw gas cost: ~300,000 CUs
+
+## Development
+
+### Prerequisites
+
+- Rust 1.60+
+- Solana CLI 1.16.0+
+- Node.js 14+
+
+### Build
+
+```bash
+cargo build-bpf
+```
+
+### Test
+
+```bash
+cargo test-bpf
+```
+
+### Deploy
+
+```bash
+solana program deploy target/deploy/tornado_svm.so
+```
+
+## License
+
+MIT
 
 Tornado Cash is a non-custodial Ethereum and ERC20 privacy solution based on zkSNARKs. It improves transaction privacy by breaking the on-chain link between the recipient and destination addresses. It uses a smart contract that accepts ETH deposits that can be withdrawn by a different address. Whenever ETH is withdrawn by the new address, there is no way to link the withdrawal to the deposit, ensuring complete privacy.
 
