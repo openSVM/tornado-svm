@@ -28,26 +28,12 @@ MERKLE_TREE=""
 WALLET_PATH="$HOME/.config/solana/id.json"
 DENOMINATION=1 # 1 SOL
 MERKLE_TREE_HEIGHT=20
-RPC_URL="http://localhost:8899"
+RPC_URL="https://api.testnet.solana.com"
 
-# Step 1: Start a local validator (if not already running)
-echo -e "${YELLOW}Step 1: Starting local validator...${NC}"
-# Check if validator is already running
-if ! solana config get | grep -q "http://localhost:8899"; then
-    # Start validator in the background
-    solana-test-validator --quiet --reset &
-    VALIDATOR_PID=$!
-    echo "Local validator started with PID: $VALIDATOR_PID"
-    
-    # Wait for validator to start
-    echo "Waiting for validator to start..."
-    sleep 10
-    
-    # Configure Solana CLI to use local validator
-    solana config set --url $RPC_URL
-else
-    echo "Local validator already running"
-fi
+# Step 1: Configure Solana CLI to use testnet
+echo -e "${YELLOW}Step 1: Configuring Solana CLI to use testnet...${NC}"
+solana config set --url $RPC_URL
+echo "Connected to Solana testnet"
 
 # Create a new wallet if it doesn't exist
 if [ ! -f "$WALLET_PATH" ]; then
@@ -55,9 +41,9 @@ if [ ! -f "$WALLET_PATH" ]; then
     solana-keygen new --no-bip39-passphrase -o "$WALLET_PATH"
 fi
 
-# Airdrop SOL to the wallet
-echo "Airdropping 10 SOL to wallet..."
-solana airdrop 10 $(solana address) || true
+# Airdrop SOL to the wallet (testnet has a lower limit)
+echo "Airdropping 1 SOL to wallet..."
+solana airdrop 1 $(solana address) || true
 sleep 2
 
 # Step 2: Install dependencies for the client
@@ -236,10 +222,6 @@ echo "Recipient balance: $RECIPIENT_BALANCE SOL"
 
 # Cleanup
 echo -e "${YELLOW}Cleaning up...${NC}"
-# Kill the validator if we started it
-if [ ! -z "$VALIDATOR_PID" ]; then
-    kill $VALIDATOR_PID
-    echo "Local validator stopped"
-fi
+echo "No cleanup needed for testnet"
 
 echo -e "${GREEN}Script completed!${NC}"
