@@ -30,7 +30,7 @@ const schema = new Map([
         ['height', 'u8'],
         ['current_index', 'u32'],
         ['next_index', 'u32'],
-        ['current_root_index', 'u32'],
+        ['current_root_index', 'u8'], // Changed from 'u32' to 'u8' to match the Solana program
         ['roots', [['u8', 32], 30]], // Array of 30 roots, each 32 bytes
         ['filled_subtrees', [['u8', 32]]], // Variable length array of 32-byte arrays
         ['nullifier_hashes', [['u8', 32]]], // Variable length array of 32-byte arrays

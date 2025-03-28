@@ -4,6 +4,7 @@ set -e
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'  # Add this line
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}Starting Tornado Cash Privacy Solution Transaction Script${NC}"
@@ -69,7 +70,12 @@ cd ../scripts
 echo -e "${YELLOW}Step 3: Building and deploying the program...${NC}"
 cd ..
 echo "Building the program..."
-cargo build-bpf || { echo -e "${RED}Error: Failed to build the program.${NC}"; exit 1; }
+# Try the newer cargo build-sbf command first, fall back to cargo build-bpf if not available
+if command -v cargo build-sbf &> /dev/null; then
+    cargo build-sbf || { echo -e "${RED}Error: Failed to build the program.${NC}"; exit 1; }
+else
+    cargo build-bpf || { echo -e "${RED}Error: Failed to build the program.${NC}"; exit 1; }
+fi
 
 echo "Deploying the program..."
 DEPLOY_OUTPUT=$(solana program deploy target/deploy/tornado_svm.so)
@@ -89,7 +95,7 @@ sed -i "s/YourProgramIdHere/$PROGRAM_ID/g" client/tornado-cli.js
 # Step 4: Initialize a tornado instance
 echo -e "${YELLOW}Step 4: Initializing tornado instance...${NC}"
 cd client
-INIT_OUTPUT=$(node tornado-cli.js initialize --keypair "$WALLET_PATH" --denomination $DENOMINATION --height $MERKLE_TREE_HEIGHT)
+INIT_OUTPUT=$(npx ./tornado-cli.js initialize --keypair "$WALLET_PATH" --denomination $DENOMINATION --height $MERKLE_TREE_HEIGHT)
 TORNADO_INSTANCE=$(echo "$INIT_OUTPUT" | grep "Tornado instance created:" | awk '{print $4}')
 
 if [ -z "$TORNADO_INSTANCE" ]; then
@@ -105,7 +111,7 @@ sleep 5
 
 # Step 5: Generate a commitment
 echo -e "${YELLOW}Step 5: Generating commitment...${NC}"
-COMMITMENT_OUTPUT=$(node tornado-cli.js generate-commitment)
+COMMITMENT_OUTPUT=$(npx ./tornado-cli.js generate-commitment)
 NOTE_PATH=$(echo "$COMMITMENT_OUTPUT" | grep "Note saved to" | awk '{print $4}')
 COMMITMENT=$(echo "$COMMITMENT_OUTPUT" | grep "Commitment:" | awk '{print $2}')
 
@@ -120,7 +126,7 @@ echo "Commitment: $COMMITMENT"
 
 # Step 6: Deposit funds
 echo -e "${YELLOW}Step 6: Depositing funds...${NC}"
-DEPOSIT_OUTPUT=$(node tornado-cli.js deposit --keypair "$WALLET_PATH" --instance "$TORNADO_INSTANCE" --commitment "$COMMITMENT" --amount $DENOMINATION)
+DEPOSIT_OUTPUT=$(npx ./tornado-cli.js deposit --keypair "$WALLET_PATH" --instance "$TORNADO_INSTANCE" --commitment "$COMMITMENT" --amount $DENOMINATION)
 DEPOSIT_SIGNATURE=$(echo "$DEPOSIT_OUTPUT" | grep "Transaction signature:" | awk '{print $3}')
 
 if [ -z "$DEPOSIT_SIGNATURE" ]; then
@@ -137,13 +143,39 @@ sleep 10
 
 # Step 7: Get the Merkle tree account
 echo -e "${YELLOW}Step 7: Getting Merkle tree account...${NC}"
-# Get the Merkle tree account using the seed
-MERKLE_TREE_SEED="merkle_tree${TORNADO_INSTANCE}0"
-MERKLE_TREE=$(solana address --keypair "$WALLET_PATH" --seed "$MERKLE_TREE_SEED" $PROGRAM_ID)
+# Get the Merkle tree account using find-program-address
+MERKLE_TREE=$(solana address find-program-address \
+    --input "merkle_tree" \
+    --input "$TORNADO_INSTANCE" \
+    --input "0" \
+    --program-id "$PROGRAM_ID" | head -1)
 
 if [ -z "$MERKLE_TREE" ]; then
     echo -e "${RED}Error: Failed to get Merkle tree account.${NC}"
-    exit 1
+    # Try alternative method for older Solana CLI versions
+    echo "Trying alternative method..."
+    # In older versions, we need to use a different approach
+    # We'll use the tornado-cli.js to get the Merkle tree account
+    cd ../client
+    MERKLE_TREE_OUTPUT=$(node -e "
+        const { PublicKey } = require('@solana/web3.js');
+        const programId = new PublicKey('$PROGRAM_ID');
+        const tornadoInstance = new PublicKey('$TORNADO_INSTANCE');
+        const seeds = [
+            Buffer.from('merkle_tree', 'utf8'),
+            tornadoInstance.toBuffer(),
+            Buffer.from([0])
+        ];
+        const [merkleTreePubkey] = PublicKey.findProgramAddressSync(seeds, programId);
+        console.log(merkleTreePubkey.toString());
+    ")
+    MERKLE_TREE=$MERKLE_TREE_OUTPUT
+    cd ../scripts
+    
+    if [ -z "$MERKLE_TREE" ]; then
+        echo -e "${RED}Error: Failed to get Merkle tree account using alternative method.${NC}"
+        exit 1
+    fi
 fi
 
 echo "Merkle tree account: $MERKLE_TREE"
@@ -166,7 +198,7 @@ fi
 echo -e "${YELLOW}Step 9: Generating proof for withdrawal...${NC}"
 cd ../client
 RECIPIENT=$(solana address)
-PROOF_OUTPUT=$(node tornado-cli.js generate-proof --note "$NOTE_PATH" --root "$ROOT" --recipient "$RECIPIENT")
+PROOF_OUTPUT=$(npx ./tornado-cli.js generate-proof --note "$NOTE_PATH" --root "$ROOT" --recipient "$RECIPIENT")
 PROOF=$(echo "$PROOF_OUTPUT" | grep "Proof:" | awk '{print $2}')
 NULLIFIER_HASH=$(echo "$PROOF_OUTPUT" | grep "Nullifier hash:" | awk '{print $3}')
 
@@ -181,7 +213,7 @@ echo "Nullifier hash: $NULLIFIER_HASH"
 
 # Step 10: Withdraw funds
 echo -e "${YELLOW}Step 10: Withdrawing funds...${NC}"
-WITHDRAW_OUTPUT=$(node tornado-cli.js withdraw --keypair "$WALLET_PATH" --instance "$TORNADO_INSTANCE" --proof "$PROOF" --root "$ROOT" --nullifier-hash "$NULLIFIER_HASH" --recipient "$RECIPIENT")
+WITHDRAW_OUTPUT=$(npx ./tornado-cli.js withdraw --keypair "$WALLET_PATH" --instance "$TORNADO_INSTANCE" --proof "$PROOF" --root "$ROOT" --nullifier-hash "$NULLIFIER_HASH" --recipient "$RECIPIENT")
 WITHDRAW_SIGNATURE=$(echo "$WITHDRAW_OUTPUT" | grep "Transaction signature:" | awk '{print $3}')
 
 if [ -z "$WITHDRAW_SIGNATURE" ]; then
