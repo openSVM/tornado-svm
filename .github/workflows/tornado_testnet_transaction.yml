@@ -1,0 +1,337 @@
+name: Tornado SVM Testnet Transaction Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      denomination:
+        description: 'Transaction denomination in SOL'
+        required: true
+        default: '1'
+      merkle_tree_height:
+        description: 'Merkle tree height'
+        required: true
+        default: '20'
+      rpc_url:
+        description: 'Solana RPC URL (defaults to testnet)'
+        required: false
+        default: 'https://api.testnet.solana.com'
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sundays at midnight UTC
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'client/**'
+
+jobs:
+  run-tornado-transaction:
+    name: Execute Tornado Transaction on Testnet
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: 'client/package.json'
+      
+      - name: Install dependencies
+        run: |
+          npm install -g @solana/web3.js commander fs crypto bn.js bs58 borsh
+          npm install -g chartjs-node-canvas chart.js
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev libusb-1.0-0-dev pkg-config
+      
+      - name: Install Solana Tool Suite
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/v1.16.0/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          solana --version
+      
+      - name: Install Rust and Cargo
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt, clippy
+      
+      - name: Setup metrics directory
+        run: |
+          mkdir -p reports/metrics
+          mkdir -p reports/graphs
+          chmod +x scripts/generate_metrics.js
+          chmod +x scripts/format_report.js
+      
+      - name: Generate keypair for testing
+        run: |
+          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json
+          solana config set --url ${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}
+          echo "# Tornado SVM Testnet Transaction Report" > reports/transaction_report.md
+          echo "Generated on: $(date)" >> reports/transaction_report.md
+          echo "" >> reports/transaction_report.md
+          echo "## Configuration" >> reports/transaction_report.md
+          echo "- Denomination: ${{ github.event.inputs.denomination || '1' }} SOL" >> reports/transaction_report.md
+          echo "- Merkle Tree Height: ${{ github.event.inputs.merkle_tree_height || '20' }}" >> reports/transaction_report.md
+          echo "- Solana RPC URL: ${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" >> reports/transaction_report.md
+          echo "- Solana Version: $(solana --version)" >> reports/transaction_report.md
+          echo "- Node.js Version: $(node --version)" >> reports/transaction_report.md
+          echo "- Rust Version: $(rustc --version)" >> reports/transaction_report.md
+          echo "- Wallet Address: $(solana address)" >> reports/transaction_report.md
+          echo "" >> reports/transaction_report.md
+      
+      - name: Request airdrop
+        run: |
+          echo "## Solana Testnet Airdrop" >> reports/transaction_report.md
+          echo "Requesting airdrop..." | tee -a reports/transaction_report.md
+          solana airdrop 1 $(solana address) || true
+          sleep 2
+          BALANCE=$(solana balance)
+          echo "Wallet balance: $BALANCE" | tee -a reports/transaction_report.md
+      
+      - name: Setup transaction script with metrics capture
+        run: |
+          # Modify the script to capture transaction signatures and execution times
+          cp scripts/run_tornado_transaction.sh scripts/run_tornado_transaction_metrics.sh
+          
+          # Add start timestamp
+          sed -i '3i\# Start time for metrics\nSTART_TIME=$(date +%s.%N)\necho "Transaction start time: $(date -u)" > ../reports/metrics/execution_times.txt\n' scripts/run_tornado_transaction_metrics.sh
+          
+          # Add timing for program deploy
+          sed -i '/echo "Program deployed with ID: $PROGRAM_ID"/a\DEPLOY_END_TIME=$(date +%s.%N)\nDEPLOY_TIME=$(echo "$DEPLOY_END_TIME - $START_TIME" | bc)\necho "Program deployment time: ${DEPLOY_TIME}s" >> ../reports/metrics/execution_times.txt' scripts/run_tornado_transaction_metrics.sh
+          
+          # Add timing for initialize
+          sed -i '/echo "Tornado instance created: $TORNADO_INSTANCE"/a\INIT_END_TIME=$(date +%s.%N)\nINIT_TIME=$(echo "$INIT_END_TIME - $DEPLOY_END_TIME" | bc)\necho "Initialization time: ${INIT_TIME}s" >> ../reports/metrics/execution_times.txt\necho $TORNADO_INSTANCE > ../reports/metrics/instance_id.txt' scripts/run_tornado_transaction_metrics.sh
+          
+          # Save deposit signature
+          sed -i '/echo "Deposit transaction signature: $DEPOSIT_SIGNATURE"/a\echo $DEPOSIT_SIGNATURE > ../reports/metrics/deposit_signature.txt\nDEPOSIT_END_TIME=$(date +%s.%N)\nDEPOSIT_TIME=$(echo "$DEPOSIT_END_TIME - $INIT_END_TIME" | bc)\necho "Deposit time: ${DEPOSIT_TIME}s" >> ../reports/metrics/execution_times.txt' scripts/run_tornado_transaction_metrics.sh
+          
+          # Save withdraw signature
+          sed -i '/echo "Withdraw transaction signature: $WITHDRAW_SIGNATURE"/a\echo $WITHDRAW_SIGNATURE > ../reports/metrics/withdraw_signature.txt\nWITHDRAW_END_TIME=$(date +%s.%N)\nWITHDRAW_TIME=$(echo "$WITHDRAW_END_TIME - $DEPOSIT_END_TIME" | bc)\necho "Withdrawal time: ${WITHDRAW_TIME}s" >> ../reports/metrics/execution_times.txt' scripts/run_tornado_transaction_metrics.sh
+          
+          # Add total time
+          sed -i '/echo -e "${GREEN}Script completed!${NC}"/i\END_TIME=$(date +%s.%N)\nTOTAL_TIME=$(echo "$END_TIME - $START_TIME" | bc)\necho "Total execution time: ${TOTAL_TIME}s" >> ../reports/metrics/execution_times.txt' scripts/run_tornado_transaction_metrics.sh
+          
+          # Make the script executable
+          chmod +x scripts/run_tornado_transaction_metrics.sh
+      
+      - name: Run Tornado transaction script with metrics
+        run: |
+          echo "## Transaction Log" >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+          cd scripts
+          ./run_tornado_transaction_metrics.sh 2>&1 | tee -a ../reports/transaction_log.txt
+          cat ../reports/transaction_log.txt >> ../reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+        env:
+          DENOMINATION: ${{ github.event.inputs.denomination || '1' }}
+          MERKLE_TREE_HEIGHT: ${{ github.event.inputs.merkle_tree_height || '20' }}
+          RPC_URL: ${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}
+      
+      - name: Generate transaction metrics
+        run: |
+          echo "## Transaction Metrics" >> reports/transaction_report.md
+          echo "### Execution Times" >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+          cat reports/metrics/execution_times.txt >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+          
+          echo "### Transaction IDs" >> reports/transaction_report.md
+          echo "- **Tornado Instance:** $(cat reports/metrics/instance_id.txt 2>/dev/null || echo 'Not available')" >> reports/transaction_report.md
+          echo "- **Deposit Transaction:** $(cat reports/metrics/deposit_signature.txt 2>/dev/null || echo 'Not available')" >> reports/transaction_report.md
+          echo "- **Withdraw Transaction:** $(cat reports/metrics/withdraw_signature.txt 2>/dev/null || echo 'Not available')" >> reports/transaction_report.md
+          
+          # Generate detailed transaction metrics using our custom script
+          if [ -f reports/metrics/deposit_signature.txt ]; then
+            DEPOSIT_SIG=$(cat reports/metrics/deposit_signature.txt)
+            node scripts/generate_metrics.js "$DEPOSIT_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/deposit_metrics.json
+          fi
+          
+          if [ -f reports/metrics/withdraw_signature.txt ]; then
+            WITHDRAW_SIG=$(cat reports/metrics/withdraw_signature.txt)
+            node scripts/generate_metrics.js "$WITHDRAW_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/withdraw_metrics.json
+          fi
+      
+      - name: Generate detailed performance report
+        run: |
+          echo "### Deposit Transaction Details" >> reports/transaction_report.md
+          if [ -f reports/metrics/deposit_metrics.json ]; then
+            echo "\`\`\`json" >> reports/transaction_report.md
+            cat reports/metrics/deposit_metrics.json >> reports/transaction_report.md
+            echo "\`\`\`" >> reports/transaction_report.md
+            
+            # Run complexity analysis on deposit transaction
+            DEPOSIT_SIG=$(cat reports/metrics/deposit_signature.txt)
+            chmod +x scripts/analyze_transaction_complexity.js
+            echo "### Deposit Transaction Complexity Analysis" >> reports/transaction_report.md
+            node scripts/analyze_transaction_complexity.js "$DEPOSIT_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/deposit_complexity.json
+            echo "\`\`\`json" >> reports/transaction_report.md
+            cat reports/metrics/deposit_complexity.json >> reports/transaction_report.md
+            echo "\`\`\`" >> reports/transaction_report.md
+            
+            # Create computation breakdown chart for deposit
+            echo "### Deposit Operation Breakdown" >> reports/transaction_report.md
+            echo "\`\`\`mermaid" >> reports/transaction_report.md
+            echo "pie title Deposit Compute Units Distribution" >> reports/transaction_report.md
+            grep -o '"type": "[^"]*", "program": "[^"]*", "subOperations": \[[^]]*\], "computeEstimate": [0-9]*, "percentage": [0-9]*' reports/metrics/deposit_complexity.json | while read -r line; do
+              OP_TYPE=$(echo $line | grep -o '"type": "[^"]*"' | cut -d'"' -f4)
+              PERCENTAGE=$(echo $line | grep -o '"percentage": [0-9]*' | cut -d':' -f2 | tr -d ' ')
+              if [ -n "$OP_TYPE" ] && [ -n "$PERCENTAGE" ]; then
+                echo "    \"$OP_TYPE\" : $PERCENTAGE" >> reports/transaction_report.md
+              fi
+            done
+            echo "\`\`\`" >> reports/transaction_report.md
+          else
+            echo "No deposit transaction metrics available" >> reports/transaction_report.md
+          fi
+          
+          echo "### Withdraw Transaction Details" >> reports/transaction_report.md
+          if [ -f reports/metrics/withdraw_metrics.json ]; then
+            echo "\`\`\`json" >> reports/transaction_report.md
+            cat reports/metrics/withdraw_metrics.json >> reports/transaction_report.md
+            echo "\`\`\`" >> reports/transaction_report.md
+            
+            # Run complexity analysis on withdraw transaction
+            WITHDRAW_SIG=$(cat reports/metrics/withdraw_signature.txt)
+            echo "### Withdraw Transaction Complexity Analysis" >> reports/transaction_report.md
+            node scripts/analyze_transaction_complexity.js "$WITHDRAW_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/withdraw_complexity.json
+            echo "\`\`\`json" >> reports/transaction_report.md
+            cat reports/metrics/withdraw_complexity.json >> reports/transaction_report.md
+            echo "\`\`\`" >> reports/transaction_report.md
+            
+            # Create computation breakdown chart for withdraw
+            echo "### Withdraw Operation Breakdown" >> reports/transaction_report.md
+            echo "\`\`\`mermaid" >> reports/transaction_report.md
+            echo "pie title Withdraw Compute Units Distribution" >> reports/transaction_report.md
+            grep -o '"type": "[^"]*", "program": "[^"]*", "subOperations": \[[^]]*\], "computeEstimate": [0-9]*, "percentage": [0-9]*' reports/metrics/withdraw_complexity.json | while read -r line; do
+              OP_TYPE=$(echo $line | grep -o '"type": "[^"]*"' | cut -d'"' -f4)
+              PERCENTAGE=$(echo $line | grep -o '"percentage": [0-9]*' | cut -d':' -f2 | tr -d ' ')
+              if [ -n "$OP_TYPE" ] && [ -n "$PERCENTAGE" ]; then
+                echo "    \"$OP_TYPE\" : $PERCENTAGE" >> reports/transaction_report.md
+              fi
+            done
+            echo "\`\`\`" >> reports/transaction_report.md
+          else
+            echo "No withdraw transaction metrics available" >> reports/transaction_report.md
+          fi
+      
+      - name: Solana network metrics
+        run: |
+          echo "## Solana Network Metrics" >> reports/transaction_report.md
+          echo "### Transaction Count" >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+          solana transaction-count >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+          
+          echo "### Current Epoch Info" >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+          solana epoch-info >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+          
+          echo "### Inflation Rate" >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+          solana inflation >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+      
+      - name: Transaction explorer links
+        run: |
+          echo "## Transaction Explorer Links" >> reports/transaction_report.md
+          if [ -f reports/metrics/deposit_signature.txt ]; then
+            DEPOSIT_SIG=$(cat reports/metrics/deposit_signature.txt)
+            echo "[Deposit Transaction on Explorer](https://explorer.solana.com/tx/$DEPOSIT_SIG?cluster=testnet)" >> reports/transaction_report.md
+          fi
+          
+          if [ -f reports/metrics/withdraw_signature.txt ]; then
+            WITHDRAW_SIG=$(cat reports/metrics/withdraw_signature.txt)
+            echo "[Withdraw Transaction on Explorer](https://explorer.solana.com/tx/$WITHDRAW_SIG?cluster=testnet)" >> reports/transaction_report.md
+          fi
+          
+          if [ -f reports/metrics/instance_id.txt ]; then
+            INSTANCE_ID=$(cat reports/metrics/instance_id.txt)
+            echo "[Tornado Instance on Explorer](https://explorer.solana.com/address/$INSTANCE_ID?cluster=testnet)" >> reports/transaction_report.md
+          fi
+      
+      - name: Create transaction flow visualization
+        run: |
+          echo "## Visualization" >> reports/transaction_report.md
+          echo "### Transaction Flow" >> reports/transaction_report.md
+          echo "\`\`\`mermaid" >> reports/transaction_report.md
+          echo "graph TD" >> reports/transaction_report.md
+          echo "    A[Deploy Program] -->|$(grep 'Program deployment time' reports/metrics/execution_times.txt 2>/dev/null | cut -d' ' -f4 || echo '?')| B[Initialize Tornado]" >> reports/transaction_report.md
+          echo "    B -->|$(grep 'Initialization time' reports/metrics/execution_times.txt 2>/dev/null | cut -d' ' -f3 || echo '?')| C[Generate Commitment]" >> reports/transaction_report.md
+          echo "    C --> D[Deposit Funds]" >> reports/transaction_report.md
+          echo "    D -->|$(grep 'Deposit time' reports/metrics/execution_times.txt 2>/dev/null | cut -d' ' -f3 || echo '?')| E[Get Merkle Root]" >> reports/transaction_report.md
+          echo "    E --> F[Generate Proof]" >> reports/transaction_report.md
+          echo "    F --> G[Withdraw Funds]" >> reports/transaction_report.md
+          echo "    G -->|$(grep 'Withdrawal time' reports/metrics/execution_times.txt 2>/dev/null | cut -d' ' -f3 || echo '?')| H[Complete]" >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+          
+          # Add zkSNARK workflow visualization
+          echo "### zkSNARK Workflow" >> reports/transaction_report.md
+          echo "\`\`\`mermaid" >> reports/transaction_report.md
+          echo "sequenceDiagram" >> reports/transaction_report.md
+          echo "    participant User" >> reports/transaction_report.md
+          echo "    participant TornadoInstance" >> reports/transaction_report.md
+          echo "    participant MerkleTree" >> reports/transaction_report.md
+          echo "    participant zkSNARK" >> reports/transaction_report.md
+          echo "    User->>TornadoInstance: Initialize" >> reports/transaction_report.md
+          echo "    TornadoInstance->>MerkleTree: Create Empty Tree" >> reports/transaction_report.md
+          echo "    User->>User: Generate Commitment" >> reports/transaction_report.md
+          echo "    User->>TornadoInstance: Deposit Funds" >> reports/transaction_report.md
+          echo "    TornadoInstance->>MerkleTree: Insert Commitment" >> reports/transaction_report.md
+          echo "    User->>MerkleTree: Get Current Root" >> reports/transaction_report.md
+          echo "    User->>zkSNARK: Generate Proof" >> reports/transaction_report.md
+          echo "    User->>TornadoInstance: Withdraw with Proof" >> reports/transaction_report.md
+          echo "    TornadoInstance->>zkSNARK: Verify Proof" >> reports/transaction_report.md
+          echo "    TornadoInstance->>User: Transfer Funds" >> reports/transaction_report.md
+          echo "\`\`\`" >> reports/transaction_report.md
+      
+      - name: Create summary report
+        run: |
+          echo "## Executive Summary" > reports/summary.md
+          echo "Tornado-SVM privacy solution transaction test completed on $(date)." >> reports/summary.md
+          
+          # Include status
+          if [ -f reports/metrics/withdraw_signature.txt ]; then
+            echo "✅ **Status: SUCCESS**" >> reports/summary.md
+          else
+            echo "❌ **Status: FAILED**" >> reports/summary.md
+          fi
+          
+          # Include key metrics
+          echo "" >> reports/summary.md
+          echo "### Key Metrics" >> reports/summary.md
+          echo "- **Network:** ${RPC_URL:-Testnet}" >> reports/summary.md
+          echo "- **Total Execution Time:** $(grep 'Total execution time' reports/metrics/execution_times.txt 2>/dev/null | cut -d' ' -f4 || echo 'N/A')" >> reports/summary.md
+          
+          if [ -f reports/metrics/deposit_metrics.json ]; then
+            DEPOSIT_COMPUTE=$(grep 'computeUnitsConsumed' reports/metrics/deposit_metrics.json | head -1 | awk '{print $2}' | tr -d ',:')
+            echo "- **Deposit Compute Units:** ${DEPOSIT_COMPUTE:-N/A}" >> reports/summary.md
+          fi
+          
+          if [ -f reports/metrics/withdraw_metrics.json ]; then
+            WITHDRAW_COMPUTE=$(grep 'computeUnitsConsumed' reports/metrics/withdraw_metrics.json | head -1 | awk '{print $2}' | tr -d ',:')
+            echo "- **Withdraw Compute Units:** ${WITHDRAW_COMPUTE:-N/A}" >> reports/summary.md
+          fi
+          
+          # Add the summary to the main report
+          cat reports/summary.md reports/transaction_report.md > reports/full_report.md
+          mv reports/full_report.md reports/transaction_report.md
+      
+      - name: Upload transaction report artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: tornado-svm-transaction-report
+          path: |
+            reports/transaction_report.md
+            reports/metrics/*.json
+            reports/metrics/execution_times.txt
+          retention-days: 90
+      
+      - name: Create GitHub job summary
+        run: |
+          cat reports/summary.md >> $GITHUB_STEP_SUMMARY
