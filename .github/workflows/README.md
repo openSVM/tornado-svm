@@ -1,5 +1,31 @@
 # Tornado-SVM GitHub Actions Workflows
 
+## Build Workflow
+
+### Workflow: `build.yml`
+
+**Purpose:** Build, test, and validate the Tornado-SVM codebase using the Bun JavaScript runtime and Solana build tools.
+
+### Trigger Methods:
+
+1. **On Push:** Runs on all branch pushes and version tags
+2. **On Pull Request:** Runs on all pull requests
+
+### What the Workflow Does:
+
+1. Sets up Bun and Rust toolchains
+2. Installs Solana build tools
+3. Builds the Solana program using Cargo build-sbf
+4. Runs program tests
+5. Lints the code with Clippy
+6. Builds and tests the client
+
+### Technologies Used:
+
+- **Bun:** Fast JavaScript runtime and package manager
+- **Rust:** Primary language for the Solana program
+- **Solana CLI:** For building and testing Solana programs
+
 ## Testnet Transaction Metrics Workflow
 
 This workflow automates the process of running Tornado-SVM privacy solution transactions on Solana testnet and generating comprehensive metrics reports.
@@ -22,7 +48,7 @@ This workflow automates the process of running Tornado-SVM privacy solution tran
 
 ### What the Workflow Does:
 
-1. Sets up the Solana toolchain and required dependencies
+1. Sets up Bun runtime and the Solana toolchain
 2. Creates a new Solana wallet and requests an airdrop
 3. Deploys the Tornado-SVM program to the Solana testnet
 4. Initializes a new Tornado instance

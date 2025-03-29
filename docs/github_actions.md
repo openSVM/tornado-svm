@@ -6,6 +6,29 @@ This document outlines the GitHub Actions workflows available for automating tes
 
 ## Available Workflows
 
+### Build Workflow
+
+**File:** `.github/workflows/build.yml`
+
+**Purpose:**  
+This workflow handles the building, testing, and validation of the Tornado-SVM codebase using the Bun JavaScript runtime and Solana build tools. It provides quick feedback on code quality and functionality.
+
+**Key Features:**
+- Builds the Solana program using Cargo build-sbf
+- Runs integration tests for the program
+- Builds and tests the client code
+- Performs code linting with Clippy
+
+**Triggers:**
+- Executes on all Git pushes to any branch
+- Runs on version tags matching `v[0-9]+.[0-9]+.[0-9]+`
+- Executes on all pull requests
+
+**Technologies:**
+- Uses Bun for JavaScript runtime and package management
+- Uses the latest Rust toolchain for Solana program development
+- Uses Solana CLI tools for program building and testing
+
 ### Tornado Testnet Transaction Test
 
 **File:** `.github/workflows/tornado_testnet_transaction.yml`
@@ -83,7 +106,7 @@ By running this workflow regularly or after significant changes, the team can mo
 
 ## Development Notes
 
-The workflow uses several custom scripts for capturing and analyzing metrics:
+The workflow uses several custom scripts for capturing and analyzing metrics, executed with Bun:
 
 - `run_tornado_transaction_metrics.sh`: Modified version of the transaction script that captures timing data
 - `generate_metrics.js`: Extracts detailed transaction data from the Solana network

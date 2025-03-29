@@ -38,17 +38,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: '16'
-          cache: 'npm'
-          cache-dependency-path: 'client/package.json'
+          bun-version: latest
       
       - name: Install dependencies
         run: |
-          npm install -g @solana/web3.js commander fs crypto bn.js bs58 borsh
-          npm install -g chartjs-node-canvas chart.js
+          bun install
+          bun install -g chartjs-node-canvas chart.js
           sudo apt-get update
           sudo apt-get install -y libudev-dev libusb-1.0-0-dev pkg-config
       
@@ -58,11 +56,9 @@ jobs:
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
           solana --version
       
-      - name: Install Rust and Cargo
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
           components: rustfmt, clippy
       
       - name: Setup metrics directory
@@ -84,7 +80,7 @@ jobs:
           echo "- Merkle Tree Height: ${{ github.event.inputs.merkle_tree_height || '20' }}" >> reports/transaction_report.md
           echo "- Solana RPC URL: ${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" >> reports/transaction_report.md
           echo "- Solana Version: $(solana --version)" >> reports/transaction_report.md
-          echo "- Node.js Version: $(node --version)" >> reports/transaction_report.md
+          echo "- Bun Version: $(bun --version)" >> reports/transaction_report.md
           echo "- Rust Version: $(rustc --version)" >> reports/transaction_report.md
           echo "- Wallet Address: $(solana address)" >> reports/transaction_report.md
           echo "" >> reports/transaction_report.md
@@ -164,12 +160,12 @@ jobs:
           # Generate detailed transaction metrics using our custom script
           if [ -f reports/metrics/deposit_signature.txt ]; then
             DEPOSIT_SIG=$(cat reports/metrics/deposit_signature.txt)
-            node scripts/generate_metrics.js "$DEPOSIT_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/deposit_metrics.json
+            bun scripts/generate_metrics.js "$DEPOSIT_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/deposit_metrics.json
           fi
           
           if [ -f reports/metrics/withdraw_signature.txt ]; then
             WITHDRAW_SIG=$(cat reports/metrics/withdraw_signature.txt)
-            node scripts/generate_metrics.js "$WITHDRAW_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/withdraw_metrics.json
+            bun scripts/generate_metrics.js "$WITHDRAW_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/withdraw_metrics.json
           fi
       
       - name: Generate detailed performance report
@@ -189,7 +185,7 @@ jobs:
             DEPOSIT_SIG=$(cat reports/metrics/deposit_signature.txt)
             chmod +x scripts/analyze_transaction_complexity.js
             echo "### Deposit Transaction Complexity Analysis" >> reports/transaction_report.md
-            node scripts/analyze_transaction_complexity.js "$DEPOSIT_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/deposit_complexity.json
+            bun scripts/analyze_transaction_complexity.js "$DEPOSIT_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/deposit_complexity.json
             echo "\`\`\`json" >> reports/transaction_report.md
             cat reports/metrics/deposit_complexity.json >> reports/transaction_report.md
             echo "\`\`\`" >> reports/transaction_report.md
@@ -219,7 +215,7 @@ jobs:
             # Run complexity analysis on withdraw transaction
             WITHDRAW_SIG=$(cat reports/metrics/withdraw_signature.txt)
             echo "### Withdraw Transaction Complexity Analysis" >> reports/transaction_report.md
-            node scripts/analyze_transaction_complexity.js "$WITHDRAW_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/withdraw_complexity.json
+            bun scripts/analyze_transaction_complexity.js "$WITHDRAW_SIG" "${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}" > reports/metrics/withdraw_complexity.json
             echo "\`\`\`json" >> reports/transaction_report.md
             cat reports/metrics/withdraw_complexity.json >> reports/transaction_report.md
             echo "\`\`\`" >> reports/transaction_report.md
