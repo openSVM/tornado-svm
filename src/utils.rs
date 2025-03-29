@@ -139,3 +139,139 @@ pub fn compute_nullifier_hash(nullifier: &[u8; 32]) -> [u8; 32] {
     
     nullifier_hash
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use solana_program::{
+        account_info::AccountInfo,
+        program_error::ProgramError,
+        pubkey::Pubkey,
+    };
+    
+    #[test]
+    fn test_commitment_exists() {
+        // Create test commitments
+        let mut commitments = Vec::new();
+        let commitment1 = [1u8; 32];
+        let commitment2 = [2u8; 32];
+        
+        commitments.push(commitment1);
+        
+        // Test with existing commitment
+        assert!(commitment_exists(&commitments, &commitment1));
+        
+        // Test with non-existing commitment
+        assert!(!commitment_exists(&commitments, &commitment2));
+    }
+    
+    #[test]
+    fn test_nullifier_hash_exists() {
+        // Create test nullifier hashes
+        let mut nullifier_hashes = Vec::new();
+        let nullifier_hash1 = [1u8; 32];
+        let nullifier_hash2 = [2u8; 32];
+        
+        nullifier_hashes.push(nullifier_hash1);
+        
+        // Test with existing nullifier hash
+        assert!(nullifier_hash_exists(&nullifier_hashes, &nullifier_hash1));
+        
+        // Test with non-existing nullifier hash
+        assert!(!nullifier_hash_exists(&nullifier_hashes, &nullifier_hash2));
+    }
+    
+    #[test]
+    fn test_add_commitment() {
+        // Create test commitments
+        let mut commitments = Vec::new();
+        let commitment1 = [1u8; 32];
+        let commitment2 = [2u8; 32];
+        
+        // Add first commitment
+        let result = add_commitment(&mut commitments, &commitment1);
+        assert!(result.is_ok());
+        assert_eq!(commitments.len(), 1);
+        
+        // Add second commitment
+        let result = add_commitment(&mut commitments, &commitment2);
+        assert!(result.is_ok());
+        assert_eq!(commitments.len(), 2);
+        
+        // Try to add duplicate commitment
+        let result = add_commitment(&mut commitments, &commitment1);
+        assert!(result.is_err());
+        assert_eq!(commitments.len(), 2);
+    }
+    
+    #[test]
+    fn test_add_nullifier_hash() {
+        // Create test nullifier hashes
+        let mut nullifier_hashes = Vec::new();
+        let nullifier_hash1 = [1u8; 32];
+        let nullifier_hash2 = [2u8; 32];
+        
+        // Add first nullifier hash
+        let result = add_nullifier_hash(&mut nullifier_hashes, &nullifier_hash1);
+        assert!(result.is_ok());
+        assert_eq!(nullifier_hashes.len(), 1);
+        
+        // Add second nullifier hash
+        let result = add_nullifier_hash(&mut nullifier_hashes, &nullifier_hash2);
+        assert!(result.is_ok());
+        assert_eq!(nullifier_hashes.len(), 2);
+        
+        // Try to add duplicate nullifier hash
+        let result = add_nullifier_hash(&mut nullifier_hashes, &nullifier_hash1);
+        assert!(result.is_err());
+        assert_eq!(nullifier_hashes.len(), 2);
+    }
+    
+    #[test]
+    fn test_compute_commitment() {
+        // Test with different inputs
+        let nullifier1 = [1u8; 32];
+        let secret1 = [2u8; 32];
+        let commitment1 = compute_commitment(&nullifier1, &secret1);
+        
+        // Ensure commitment is not zero
+        assert!(!commitment1.iter().all(|&x| x == 0));
+        
+        // Test with different inputs
+        let nullifier2 = [3u8; 32];
+        let secret2 = [4u8; 32];
+        let commitment2 = compute_commitment(&nullifier2, &secret2);
+        
+        // Ensure different inputs produce different commitments
+        assert!(commitment1 != commitment2);
+        
+        // Test with same inputs
+        let commitment1_duplicate = compute_commitment(&nullifier1, &secret1);
+        
+        // Ensure same inputs produce same commitment
+        assert_eq!(commitment1, commitment1_duplicate);
+    }
+    
+    #[test]
+    fn test_compute_nullifier_hash() {
+        // Test with different inputs
+        let nullifier1 = [1u8; 32];
+        let nullifier_hash1 = compute_nullifier_hash(&nullifier1);
+        
+        // Ensure nullifier hash is not zero
+        assert!(!nullifier_hash1.iter().all(|&x| x == 0));
+        
+        // Test with different input
+        let nullifier2 = [2u8; 32];
+        let nullifier_hash2 = compute_nullifier_hash(&nullifier2);
+        
+        // Ensure different inputs produce different nullifier hashes
+        assert!(nullifier_hash1 != nullifier_hash2);
+        
+        // Test with same input
+        let nullifier_hash1_duplicate = compute_nullifier_hash(&nullifier1);
+        
+        // Ensure same input produces same nullifier hash
+        assert_eq!(nullifier_hash1, nullifier_hash1_duplicate);
+    }
+}

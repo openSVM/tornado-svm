@@ -152,3 +152,145 @@ fn get_verifying_key() -> Result<VerifyingKey<Bn254>, ProgramError> {
         gamma_abc_g1: ic,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_bn254::{Bn254, Fr, G1Affine, G2Affine};
+    use ark_ec::pairing::Pairing;
+    use ark_ff::{Field, One, Zero};
+    use ark_groth16::{Proof, VerifyingKey};
+    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+    
+    // Helper function to create a dummy proof
+    fn create_dummy_proof() -> Vec<u8> {
+        // Create dummy field elements
+        let a_x = Fr::one();
+        let a_y = Fr::one();
+        let b_x_1 = Fr::one();
+        let b_x_2 = Fr::one();
+        let b_y_1 = Fr::one();
+        let b_y_2 = Fr::one();
+        let c_x = Fr::one();
+        let c_y = Fr::one();
+        
+        // Create G1 and G2 points
+        let a = G1Affine::new(a_x, a_y);
+        let b = G2Affine::new([b_x_1, b_x_2], [b_y_1, b_y_2]);
+        let c = G1Affine::new(c_x, c_y);
+        
+        // Create the proof
+        let proof = Proof { a, b, c };
+        
+        // Serialize the proof components to bytes
+        let mut proof_data = Vec::new();
+        
+        // Add a_x, a_y
+        let mut a_x_bytes = [0u8; 32];
+        let mut a_y_bytes = [0u8; 32];
+        a_x_bytes[0] = 1;
+        a_y_bytes[0] = 1;
+        proof_data.extend_from_slice(&a_x_bytes);
+        proof_data.extend_from_slice(&a_y_bytes);
+        
+        // Add b_x_1, b_x_2, b_y_1, b_y_2
+        let mut b_x_1_bytes = [0u8; 32];
+        let mut b_x_2_bytes = [0u8; 32];
+        let mut b_y_1_bytes = [0u8; 32];
+        let mut b_y_2_bytes = [0u8; 32];
+        b_x_1_bytes[0] = 1;
+        b_x_2_bytes[0] = 1;
+        b_y_1_bytes[0] = 1;
+        b_y_2_bytes[0] = 1;
+        proof_data.extend_from_slice(&b_x_1_bytes);
+        proof_data.extend_from_slice(&b_x_2_bytes);
+        proof_data.extend_from_slice(&b_y_1_bytes);
+        proof_data.extend_from_slice(&b_y_2_bytes);
+        
+        // Add c_x, c_y
+        let mut c_x_bytes = [0u8; 32];
+        let mut c_y_bytes = [0u8; 32];
+        c_x_bytes[0] = 1;
+        c_y_bytes[0] = 1;
+        proof_data.extend_from_slice(&c_x_bytes);
+        proof_data.extend_from_slice(&c_y_bytes);
+        
+        proof_data
+    }
+    
+    // Helper function to create dummy public inputs
+    fn create_dummy_public_inputs() -> [u8; 192] {
+        let mut inputs = [0u8; 192];
+        // Set some non-zero values
+        for i in 0..6 {
+            inputs[i * 32] = (i + 1) as u8;
+        }
+        inputs
+    }
+    
+    #[test]
+    fn test_deserialize_proof() {
+        let proof_data = create_dummy_proof();
+        let result = deserialize_proof(&proof_data);
+        assert!(result.is_ok());
+        
+        // Test with invalid length
+        let invalid_proof = vec![0u8; 128]; // Too short
+        let result = deserialize_proof(&invalid_proof);
+        assert!(result.is_err());
+    }
+    
+    #[test]
+    fn test_extract_field_element() {
+        // Test with valid data
+        let mut data = [0u8; 32];
+        data[0] = 1;
+        let result = extract_field_element(&data);
+        assert!(result.is_ok());
+        
+        // Test with invalid length
+        let invalid_data = [0u8; 16]; // Too short
+        let result = extract_field_element(&invalid_data);
+        assert!(result.is_err());
+    }
+    
+    #[test]
+    fn test_deserialize_public_inputs() {
+        let inputs = create_dummy_public_inputs();
+        let result = deserialize_public_inputs(&inputs);
+        assert!(result.is_ok());
+        
+        let deserialized = result.unwrap();
+        assert_eq!(deserialized.len(), 6);
+        
+        // Check that the values were correctly deserialized
+        for i in 0..6 {
+            assert!(!deserialized[i].is_zero());
+        }
+    }
+    
+    #[test]
+    fn test_get_verifying_key() {
+        let result = get_verifying_key();
+        assert!(result.is_ok());
+        
+        let vk = result.unwrap();
+        assert_eq!(vk.gamma_abc_g1.len(), 7); // 6 public inputs + 1
+    }
+    
+    #[test]
+    fn test_verify_tornado_proof() {
+        let proof_data = create_dummy_proof();
+        let public_inputs = create_dummy_public_inputs();
+        
+        // This should fail because we're using dummy values
+        // In a real scenario, we would use a valid proof and inputs
+        let result = verify_tornado_proof(&proof_data, &public_inputs);
+        assert!(result.is_err());
+        
+        // Test with invalid proof data
+        let invalid_proof = vec![0u8; 128]; // Too short
+        let result = verify_tornado_proof(&invalid_proof, &public_inputs);
+        assert!(result.is_err());
+    }
+}

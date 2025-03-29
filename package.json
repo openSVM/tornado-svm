@@ -9,8 +9,8 @@
     "deploy": "solana program deploy target/deploy/tornado_svm.so",
     "lint": "cargo clippy -- -D warnings",
     "format": "cargo fmt --all",
-    "client:build": "cd client && npm install",
-    "client:test": "cd client && npm test"
+    "client:build": "cd client && bun install",
+    "client:test": "cd client && bun test"
   },
   "keywords": [
     "solana",
