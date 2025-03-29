@@ -28,6 +28,11 @@ jobs:
   run-tornado-transaction:
     name: Execute Tornado Transaction on Testnet
     runs-on: ubuntu-latest
+    env:
+      # Disable Telegram notifications
+      SKIP_TELEGRAM_NOTIFICATIONS: 'true'
+      TELEGRAM_BOT_TOKEN: 'disabled'
+      TELEGRAM_CHAT_ID: 'disabled'
     
     steps:
       - name: Checkout code
@@ -124,6 +129,8 @@ jobs:
           echo "## Transaction Log" >> reports/transaction_report.md
           echo "\`\`\`" >> reports/transaction_report.md
           cd scripts
+          # Explicitly disabling telegram-related environment variables before running script
+          export TELEGRAM_BOT_TOKEN=disabled TELEGRAM_CHAT_ID=disabled SKIP_TELEGRAM_NOTIFICATIONS=true
           ./run_tornado_transaction_metrics.sh 2>&1 | tee -a ../reports/transaction_log.txt
           cat ../reports/transaction_log.txt >> ../reports/transaction_report.md
           echo "\`\`\`" >> reports/transaction_report.md
@@ -131,8 +138,17 @@ jobs:
           DENOMINATION: ${{ github.event.inputs.denomination || '1' }}
           MERKLE_TREE_HEIGHT: ${{ github.event.inputs.merkle_tree_height || '20' }}
           RPC_URL: ${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}
+          # Remove telegram token dependency
+          TELEGRAM_BOT_TOKEN: 'disabled'
+          TELEGRAM_CHAT_ID: 'disabled'
+          SKIP_TELEGRAM_NOTIFICATIONS: 'true'
       
       - name: Generate transaction metrics
+        env:
+          # Remove telegram token dependency
+          TELEGRAM_BOT_TOKEN: 'disabled'
+          TELEGRAM_CHAT_ID: 'disabled'
+          SKIP_TELEGRAM_NOTIFICATIONS: 'true'
         run: |
           echo "## Transaction Metrics" >> reports/transaction_report.md
           echo "### Execution Times" >> reports/transaction_report.md
@@ -157,6 +173,11 @@ jobs:
           fi
       
       - name: Generate detailed performance report
+        env:
+          # Remove telegram token dependency
+          TELEGRAM_BOT_TOKEN: 'disabled'
+          TELEGRAM_CHAT_ID: 'disabled'
+          SKIP_TELEGRAM_NOTIFICATIONS: 'true'
         run: |
           echo "### Deposit Transaction Details" >> reports/transaction_report.md
           if [ -f reports/metrics/deposit_metrics.json ]; then
@@ -220,6 +241,11 @@ jobs:
           fi
       
       - name: Solana network metrics
+        env:
+          # Remove telegram token dependency
+          TELEGRAM_BOT_TOKEN: 'disabled'
+          TELEGRAM_CHAT_ID: 'disabled'
+          SKIP_TELEGRAM_NOTIFICATIONS: 'true'
         run: |
           echo "## Solana Network Metrics" >> reports/transaction_report.md
           echo "### Transaction Count" >> reports/transaction_report.md
@@ -238,6 +264,11 @@ jobs:
           echo "\`\`\`" >> reports/transaction_report.md
       
       - name: Transaction explorer links
+        env:
+          # Remove telegram token dependency
+          TELEGRAM_BOT_TOKEN: 'disabled'
+          TELEGRAM_CHAT_ID: 'disabled'
+          SKIP_TELEGRAM_NOTIFICATIONS: 'true'
         run: |
           echo "## Transaction Explorer Links" >> reports/transaction_report.md
           if [ -f reports/metrics/deposit_signature.txt ]; then
@@ -256,6 +287,11 @@ jobs:
           fi
       
       - name: Create transaction flow visualization
+        env:
+          # Remove telegram token dependency
+          TELEGRAM_BOT_TOKEN: 'disabled'
+          TELEGRAM_CHAT_ID: 'disabled'
+          SKIP_TELEGRAM_NOTIFICATIONS: 'true'
         run: |
           echo "## Visualization" >> reports/transaction_report.md
           echo "### Transaction Flow" >> reports/transaction_report.md
@@ -291,6 +327,11 @@ jobs:
           echo "\`\`\`" >> reports/transaction_report.md
       
       - name: Create summary report
+        env:
+          # Remove telegram token dependency
+          TELEGRAM_BOT_TOKEN: 'disabled'
+          TELEGRAM_CHAT_ID: 'disabled'
+          SKIP_TELEGRAM_NOTIFICATIONS: 'true'
         run: |
           echo "## Executive Summary" > reports/summary.md
           echo "Tornado-SVM privacy solution transaction test completed on $(date)." >> reports/summary.md
@@ -333,5 +374,17 @@ jobs:
           retention-days: 90
       
       - name: Create GitHub job summary
+        env:
+          # Remove telegram token dependency
+          TELEGRAM_BOT_TOKEN: 'disabled'
+          TELEGRAM_CHAT_ID: 'disabled'
+          SKIP_TELEGRAM_NOTIFICATIONS: 'true'
         run: |
           cat reports/summary.md >> $GITHUB_STEP_SUMMARY
+          
+      # Explicitly disable Telegram notifications that might be inherited from elsewhere
+      - name: Disable Telegram Notifications
+        run: |
+          echo "TELEGRAM_BOT_TOKEN=disabled" >> $GITHUB_ENV
+          echo "TELEGRAM_CHAT_ID=disabled" >> $GITHUB_ENV
+          echo "SKIP_TELEGRAM_NOTIFICATIONS=true" >> $GITHUB_ENV
