@@ -29,13 +29,27 @@ jobs:
 
       - name: Update Cargo to latest stable
         run: |
+          # Update to the latest stable Rust toolchain
           rustup update stable
           rustup default stable
           # Check Cargo version explicitly
           cargo --version
           echo "Using Cargo from: $(which cargo)"
           # Ensure we can handle Cargo.lock version 4
-          echo "Cargo can handle lock version: $(cargo --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+          CARGO_VERSION=$(cargo --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "Cargo version: $CARGO_VERSION"
+          # Check if Cargo version is new enough for lock file version 4
+          MAJOR=$(echo "$CARGO_VERSION" | cut -d'.' -f1)
+          MINOR=$(echo "$CARGO_VERSION" | cut -d'.' -f2)
+          if [ "$MAJOR" -lt 1 ] || ([ "$MAJOR" -eq 1 ] && [ "$MINOR" -lt 70 ]); then
+            echo "Warning: Cargo version $CARGO_VERSION may not fully support Cargo.lock version 4 format"
+            echo "Attempting to update Cargo again"
+            curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable --profile minimal
+            source "$HOME/.cargo/env"
+            cargo --version
+          else
+            echo "Cargo $CARGO_VERSION supports Cargo.lock version 4 format"
+          fi
 
       - name: Regenerate Cargo.lock
         run: |
@@ -48,6 +62,22 @@ jobs:
           echo "Regenerating Cargo.lock"
           cargo generate-lockfile
           echo "Cargo.lock regenerated successfully"
+          
+          # Verify the Cargo.lock format
+          if [ -f Cargo.lock ]; then
+            echo "Checking Cargo.lock format..."
+            # Quick check to see if it's a version 4 format (contains version = 4)
+            if grep -q 'version = 4' Cargo.lock; then
+              echo "Confirmed: Cargo.lock is using version 4 format"
+            else
+              echo "Warning: Cargo.lock may not be using version 4 format"
+              # For debugging purposes, show the first few lines
+              head -5 Cargo.lock
+            fi
+          else
+            echo "Error: Cargo.lock was not generated!"
+            exit 1
+          fi
 
       - name: Install Solana CLI
         run: |

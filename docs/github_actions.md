@@ -164,7 +164,20 @@ If your workflow fails with errors about Cargo.lock version compatibility:
    echo "Using Cargo from: $(which cargo)"
    ```
 
-3. **Automatic regeneration:** The workflow automatically regenerates the Cargo.lock file with the correct format:
+3. **Intelligent version checking:** The workflow now determines if the Cargo version is compatible with version 4 lock files:
+   ```bash
+   CARGO_VERSION=$(cargo --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+   MAJOR=$(echo "$CARGO_VERSION" | cut -d'.' -f1)
+   MINOR=$(echo "$CARGO_VERSION" | cut -d'.' -f2)
+   if [ "$MAJOR" -lt 1 ] || ([ "$MAJOR" -eq 1 ] && [ "$MINOR" -lt 70 ]); then
+     # If Cargo is too old, upgrade it again
+     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable --profile minimal
+     source "$HOME/.cargo/env"
+     cargo --version
+   fi
+   ```
+
+4. **Automatic regeneration:** The workflow automatically regenerates the Cargo.lock file with the correct format:
    ```bash
    # Remove any existing Cargo.lock
    if [ -f Cargo.lock ]; then
@@ -174,7 +187,28 @@ If your workflow fails with errors about Cargo.lock version compatibility:
    cargo generate-lockfile
    ```
 
-4. **Compatibility:** These steps ensure compatibility with Cargo.lock version 4 format (used in newer Rust versions)
+5. **Format verification:** The workflow now explicitly verifies the generated Cargo.lock format:
+   ```bash
+   # Verify the Cargo.lock format
+   if [ -f Cargo.lock ]; then
+     echo "Checking Cargo.lock format..."
+     # Quick check to see if it's a version 4 format (contains version = 4)
+     if grep -q 'version = 4' Cargo.lock; then
+       echo "Confirmed: Cargo.lock is using version 4 format"
+     else
+       echo "Warning: Cargo.lock may not be using version 4 format"
+       # For debugging purposes, show the first few lines
+       head -5 Cargo.lock
+     fi
+   else
+     echo "Error: Cargo.lock was not generated!"
+     exit 1
+   fi
+   ```
+
+6. **Compatibility:** These steps ensure compatibility with Cargo.lock version 4 format (used in newer Rust versions, typically Cargo ≥ 1.70.0)
+
+7. **Detailed error reporting:** The workflow provides comprehensive diagnostics about the Cargo version and lock file status
 
 #### Solana Build Command Not Found
 

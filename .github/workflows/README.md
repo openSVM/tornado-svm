@@ -130,9 +130,20 @@ If you encounter Cargo lock file version compatibility issues:
 1. The workflow now explicitly updates Cargo to the latest stable version
 2. We've added a specific step that runs `rustup update stable` and `rustup default stable`
 3. Cargo version is explicitly checked and logged for troubleshooting
-4. The workflow automatically regenerates the Cargo.lock file to ensure it uses a format compatible with the current Cargo version
-5. This ensures compatibility with Cargo.lock version 4 format (used in newer Rust versions)
-6. Any existing Cargo.lock is deleted and freshly regenerated to avoid format conflicts
+4. The workflow now intelligently checks if the installed Cargo version is compatible with Cargo.lock version 4:
+   ```bash
+   CARGO_VERSION=$(cargo --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+   MAJOR=$(echo "$CARGO_VERSION" | cut -d'.' -f1)
+   MINOR=$(echo "$CARGO_VERSION" | cut -d'.' -f2)
+   if [ "$MAJOR" -lt 1 ] || ([ "$MAJOR" -eq 1 ] && [ "$MINOR" -lt 70 ]); then
+     # If Cargo is too old, upgrade it again
+     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable --profile minimal
+   fi
+   ```
+5. The workflow automatically regenerates the Cargo.lock file to ensure it uses a format compatible with the current Cargo version
+6. After regeneration, it explicitly verifies the lock file format with `grep -q 'version = 4' Cargo.lock`
+7. Any existing Cargo.lock is deleted and freshly regenerated to avoid format conflicts
+8. Detailed debugging output is provided if the Cargo.lock generation fails
 
 #### Build Command Not Found
 
