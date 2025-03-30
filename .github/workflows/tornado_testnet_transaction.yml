@@ -54,17 +54,25 @@ jobs:
         run: |
           # Install Solana CLI tools
           sh -c "$(curl -sSfL https://release.solana.com/v1.16.0/install)"
-          # Add Solana to PATH for this job
+          # Add Solana to PATH for this job and ensure it persists across steps
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           # Also add to PATH for current shell session
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          export PATH="$HOME/.cargo/bin:$PATH"
           # Verify installation
           solana --version
       
-      - name: Install Rust
+      - name: Install and Update Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+          
+      - name: Update Cargo to latest stable
+        run: |
+          rustup update stable
+          rustup default stable
+          cargo --version
       
       - name: Setup metrics directory
         run: |
@@ -75,8 +83,6 @@ jobs:
       
       - name: Generate keypair for testing
         run: |
-          # Ensure Solana binaries are in PATH
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json
           solana config set --url ${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}
           echo "# Tornado SVM Testnet Transaction Report" > reports/transaction_report.md
@@ -94,8 +100,6 @@ jobs:
       
       - name: Request airdrop
         run: |
-          # Ensure Solana binaries are in PATH
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           echo "## Solana Testnet Airdrop" >> reports/transaction_report.md
           echo "Requesting airdrop..." | tee -a reports/transaction_report.md
           solana airdrop 1 $(solana address) || true
@@ -131,8 +135,6 @@ jobs:
       
       - name: Run Tornado transaction script with metrics
         run: |
-          # Ensure Solana binaries are in PATH
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           echo "## Transaction Log" >> reports/transaction_report.md
           echo "\`\`\`" >> reports/transaction_report.md
           cd scripts
@@ -255,8 +257,6 @@ jobs:
           TELEGRAM_CHAT_ID: 'disabled'
           SKIP_TELEGRAM_NOTIFICATIONS: 'true'
         run: |
-          # Ensure Solana binaries are in PATH
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           echo "## Solana Network Metrics" >> reports/transaction_report.md
           echo "### Transaction Count" >> reports/transaction_report.md
           echo "\`\`\`" >> reports/transaction_report.md

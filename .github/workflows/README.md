@@ -117,10 +117,33 @@ To manually trigger the workflow with custom parameters:
 If you encounter the error `solana: command not found`, check the following:
 
 1. Verify that the Solana CLI installation step completed successfully
-2. Check that the PATH is correctly set in each step that uses Solana commands
-3. The workflow now explicitly adds the Solana binaries to PATH in each step using:
-   ```bash
-   export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-   ```
-4. The transaction script has been enhanced to provide detailed diagnostic information when Solana is not found
-5. If problems persist, try using the `SOLANA_PATH` environment variable in the workflow step
+2. The workflow now adds Solana binaries to GitHub's persistent PATH variable (`$GITHUB_PATH`), ensuring all subsequent steps can access the commands
+3. We also add `$HOME/.cargo/bin` to PATH to pick up cargo-build-sbf and cargo-test-sbf
+4. The workflow no longer needs explicit PATH exports in each step
+5. The transaction script has robust error handling to provide detailed diagnostic information when Solana is not found
+6. You can use the `SOLANA_PATH` environment variable to override the default Solana binary location
+
+#### Cargo Lock File Version Compatibility
+
+If you encounter Cargo lock file version compatibility issues:
+
+1. The workflow now explicitly updates Cargo to the latest stable version
+2. We've added a specific step that runs `rustup update stable` and `rustup default stable`
+3. This ensures compatibility with Cargo.lock version 4 format
+
+#### Build Command Not Found
+
+If you encounter errors with `cargo build-sbf` or `cargo build-bpf`:
+
+1. The workflow now checks if commands are available using `help` flags
+2. It tries both SBF (newer) and BPF (older) variants
+3. If needed, it runs `solana-install update` to get the latest build tools
+4. PATH is updated to include all possible locations for Cargo and Solana binaries
+
+#### Notifications
+
+The workflow previously used Telegram for notifications, which has been replaced with:
+
+1. Console-based logging for better workflow compatibility
+2. No external dependencies or tokens required
+3. Clear notification messages in the workflow logs

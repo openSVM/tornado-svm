@@ -21,11 +21,17 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      # Rust setup and build
-      - name: Install Rust
+      # Rust setup and build with explicit update to latest version
+      - name: Install and Update Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
+      - name: Update Cargo to latest stable
+        run: |
+          rustup update stable
+          rustup default stable
+          cargo --version
 
       - name: Install Solana CLI
         run: |
@@ -43,21 +49,53 @@ jobs:
           # Ensure Solana binaries are in PATH
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           # Try the newer cargo build-sbf command first, fall back to cargo build-bpf if not available
-          if command -v cargo build-sbf &> /dev/null; then
+          # First check if the commands are directly available
+          if cargo build-sbf --help &> /dev/null; then
+            echo "Using cargo build-sbf"
             cargo build-sbf
-          else
+          elif cargo build-bpf --help &> /dev/null; then
+            echo "Using cargo build-bpf"
             cargo build-bpf
+          else
+            echo "Installing Solana BPF/SBF tools..."
+            solana-install update
+            # Add Solana's .cargo/bin to PATH (where cargo-build-bpf is installed)
+            export PATH="$HOME/.cargo/bin:$PATH"
+            # Try again after update
+            if cargo build-sbf --help &> /dev/null; then
+              echo "Using cargo build-sbf after update"
+              cargo build-sbf
+            else
+              echo "Using cargo build-bpf after update"
+              cargo build-bpf
+            fi
           fi
 
       - name: Run Solana tests
         run: |
           # Ensure Solana binaries are in PATH
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          export PATH="$HOME/.cargo/bin:$PATH"
           # Try the newer cargo test-sbf command first, fall back to cargo test-bpf if not available
-          if command -v cargo test-sbf &> /dev/null; then
+          if cargo test-sbf --help &> /dev/null; then
+            echo "Using cargo test-sbf"
             cargo test-sbf
-          else
+          elif cargo test-bpf --help &> /dev/null; then
+            echo "Using cargo test-bpf"
             cargo test-bpf
+          else
+            echo "Installing Solana BPF/SBF tools..."
+            solana-install update
+            # Add Solana's .cargo/bin to PATH (where cargo-test-bpf is installed)
+            export PATH="$HOME/.cargo/bin:$PATH"
+            # Try again after update
+            if cargo test-sbf --help &> /dev/null; then
+              echo "Using cargo test-sbf after update"
+              cargo test-sbf
+            else
+              echo "Using cargo test-bpf after update"
+              cargo test-bpf
+            fi
           fi
 
       - name: Run Cargo Clippy

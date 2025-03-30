@@ -31,8 +31,10 @@ This workflow handles the building, testing, and validation of the Tornado-SVM c
 
 **Solana Environment Setup:**
 - The workflow automatically installs the Solana CLI tools version 1.16.0
-- Adds the Solana binary path to GitHub's PATH environment variable
-- Ensures each step that requires Solana commands has the proper PATH setting
+- Adds the Solana binary path to GitHub's persistent PATH variable (`$GITHUB_PATH`)
+- Adds `$HOME/.cargo/bin` to PATH to include Solana build tools
+- Uses the latest Cargo toolchain with explicit version updates
+- Tries multiple command variants for maximum compatibility (SBF/BPF)
 - Provides enhanced error reporting when Solana tools are not found
 
 ### Tornado Testnet Transaction Test
@@ -131,27 +133,61 @@ If your workflow fails with the error `solana: command not found`, check the fol
 
 1. **Verify installation:** Make sure the Solana CLI installation step completed successfully in the logs
 
-2. **Check PATH configuration:** Each step that uses Solana commands should include:
+2. **GitHub PATH variables:** The workflow now adds Solana paths to `$GITHUB_PATH` for persistence across all steps:
    ```bash
-   export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+   echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+   echo "$HOME/.cargo/bin" >> $GITHUB_PATH
    ```
 
-3. **Installation log:** Look for output from the Solana installation command:
+3. **Installation log:** Look for output from the Solana installation command and verify it completed successfully:
    ```
    sh -c "$(curl -sSfL https://release.solana.com/v1.16.0/install)"
    ```
 
-4. **Enhanced diagnostics:** The `run_tornado_transaction.sh` script now includes enhanced diagnostics when Solana is not found, including checking common installation locations
+4. **Enhanced diagnostics:** The `run_tornado_transaction.sh` script includes robust diagnostics when Solana is not found, including checking common installation locations
 
-5. **Fix:** If needed, you can pass the `SOLANA_PATH` environment variable to the script execution step
+5. **SOLANA_PATH override:** You can use the `SOLANA_PATH` environment variable to specify a custom location for Solana binaries
+
+#### Cargo Lock File Version Issues
+
+If your workflow fails with errors about Cargo.lock version compatibility:
+
+1. **Update Cargo:** The workflow now explicitly updates Cargo to the latest stable version:
+   ```bash
+   rustup update stable
+   rustup default stable
+   ```
+
+2. **Version verification:** The workflow now verifies the Cargo version before proceeding with builds
+
+3. **Compatibility:** These steps ensure compatibility with Cargo.lock version 4 format
 
 #### Solana Build Command Not Found
 
-If you encounter issues with Solana build commands (either `cargo build-bpf` or `cargo build-sbf`), check that:
+If you encounter issues with Solana build commands:
 
-1. The workflow tries both the newer `build-sbf` and older `build-bpf` commands
-2. The Rust toolchain is properly installed
-3. Solana build tools are in the PATH
+1. **Command availability:** The workflow now checks if commands are available using `help` flags rather than checking for the binaries directly:
+   ```bash
+   if cargo build-sbf --help &> /dev/null; then
+     cargo build-sbf
+   elif cargo build-bpf --help &> /dev/null; then
+     cargo build-bpf
+   fi
+   ```
+
+2. **Multiple paths:** The workflow adds multiple PATH directories to find all required binaries
+
+3. **Auto-installation:** If build commands aren't found, the workflow runs `solana-install update` to get the latest tools
+
+#### Notification Issues
+
+The previous implementation used Telegram for notifications, which has been eliminated:
+
+1. **Simplified notifications:** All notifications now use console output only
+
+2. **No dependencies:** No external service dependencies or tokens required
+
+3. **Error-free operation:** Guaranteed to work in all CI environments
 
 #### Transaction Failures
 
