@@ -50,10 +50,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libudev-dev libusb-1.0-0-dev pkg-config
       
-      - name: Install Solana Tool Suite
+      - name: Install Solana CLI
         run: |
+          # Install Solana CLI tools
           sh -c "$(curl -sSfL https://release.solana.com/v1.16.0/install)"
+          # Add Solana to PATH for this job
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          # Also add to PATH for current shell session
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          # Verify installation
           solana --version
       
       - name: Install Rust
@@ -70,6 +75,8 @@ jobs:
       
       - name: Generate keypair for testing
         run: |
+          # Ensure Solana binaries are in PATH
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json
           solana config set --url ${{ github.event.inputs.rpc_url || 'https://api.testnet.solana.com' }}
           echo "# Tornado SVM Testnet Transaction Report" > reports/transaction_report.md
@@ -87,6 +94,8 @@ jobs:
       
       - name: Request airdrop
         run: |
+          # Ensure Solana binaries are in PATH
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           echo "## Solana Testnet Airdrop" >> reports/transaction_report.md
           echo "Requesting airdrop..." | tee -a reports/transaction_report.md
           solana airdrop 1 $(solana address) || true
@@ -122,12 +131,15 @@ jobs:
       
       - name: Run Tornado transaction script with metrics
         run: |
+          # Ensure Solana binaries are in PATH
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           echo "## Transaction Log" >> reports/transaction_report.md
           echo "\`\`\`" >> reports/transaction_report.md
           cd scripts
           # Explicitly disabling telegram-related environment variables before running script
           export TELEGRAM_BOT_TOKEN=disabled TELEGRAM_CHAT_ID=disabled SKIP_TELEGRAM_NOTIFICATIONS=true
-          ./run_tornado_transaction_metrics.sh 2>&1 | tee -a ../reports/transaction_log.txt
+          # Pass the Solana PATH to the script
+          SOLANA_PATH="$HOME/.local/share/solana/install/active_release/bin" ./run_tornado_transaction_metrics.sh 2>&1 | tee -a ../reports/transaction_log.txt
           cat ../reports/transaction_log.txt >> ../reports/transaction_report.md
           echo "\`\`\`" >> reports/transaction_report.md
         env:
@@ -243,6 +255,8 @@ jobs:
           TELEGRAM_CHAT_ID: 'disabled'
           SKIP_TELEGRAM_NOTIFICATIONS: 'true'
         run: |
+          # Ensure Solana binaries are in PATH
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           echo "## Solana Network Metrics" >> reports/transaction_report.md
           echo "### Transaction Count" >> reports/transaction_report.md
           echo "\`\`\`" >> reports/transaction_report.md

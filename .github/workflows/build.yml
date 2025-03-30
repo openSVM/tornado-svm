@@ -27,17 +27,38 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Install Solana tools
+      - name: Install Solana CLI
         run: |
+          # Install Solana CLI tools
           sh -c "$(curl -sSfL https://release.solana.com/v1.16.0/install)"
+          # Add Solana to PATH for this job
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          # Also add to PATH for current shell session
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          # Verify installation
           solana --version
 
       - name: Build Solana program
-        run: cargo build-bpf
+        run: |
+          # Ensure Solana binaries are in PATH
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          # Try the newer cargo build-sbf command first, fall back to cargo build-bpf if not available
+          if command -v cargo build-sbf &> /dev/null; then
+            cargo build-sbf
+          else
+            cargo build-bpf
+          fi
 
       - name: Run Solana tests
-        run: cargo test-bpf
+        run: |
+          # Ensure Solana binaries are in PATH
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          # Try the newer cargo test-sbf command first, fall back to cargo test-bpf if not available
+          if command -v cargo test-sbf &> /dev/null; then
+            cargo test-sbf
+          else
+            cargo test-bpf
+          fi
 
       - name: Run Cargo Clippy
         run: cargo clippy -- -D warnings

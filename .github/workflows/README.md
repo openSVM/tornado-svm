@@ -26,6 +26,23 @@
 - **Rust:** Primary language for the Solana program
 - **Solana CLI:** For building and testing Solana programs
 
+### Solana CLI Installation
+
+The workflow automatically installs the Solana CLI using the following process:
+
+```bash
+# Install Solana CLI tools
+sh -c "$(curl -sSfL https://release.solana.com/v1.16.0/install)"
+
+# Add to GitHub Actions PATH
+echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+
+# Also add to current shell session
+export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+```
+
+This ensures that the Solana binaries are available for all steps in the workflow that require them.
+
 ## Testnet Transaction Metrics Workflow
 
 This workflow automates the process of running Tornado-SVM privacy solution transactions on Solana testnet and generating comprehensive metrics reports.
@@ -92,3 +109,18 @@ To manually trigger the workflow with custom parameters:
 4. Enter your desired parameters (denomination, Merkle tree height, RPC URL)
 5. Click "Run workflow"
 6. Once completed, download the artifacts from the workflow run
+
+### Troubleshooting
+
+#### Solana CLI Not Found
+
+If you encounter the error `solana: command not found`, check the following:
+
+1. Verify that the Solana CLI installation step completed successfully
+2. Check that the PATH is correctly set in each step that uses Solana commands
+3. The workflow now explicitly adds the Solana binaries to PATH in each step using:
+   ```bash
+   export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+   ```
+4. The transaction script has been enhanced to provide detailed diagnostic information when Solana is not found
+5. If problems persist, try using the `SOLANA_PATH` environment variable in the workflow step

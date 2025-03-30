@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# If SOLANA_PATH is set, add it to PATH
+if [ -n "$SOLANA_PATH" ]; then
+    echo "Adding Solana binaries to PATH: $SOLANA_PATH"
+    export PATH="$SOLANA_PATH:$PATH"
+fi
+
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -9,11 +15,24 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}Starting Tornado Cash Privacy Solution Transaction Script${NC}"
 
-# Check if solana is installed
+# Check if solana is installed and print more debugging information if not found
 if ! command -v solana &> /dev/null; then
-    echo "Error: Solana CLI is not installed. Please install it first."
+    echo "Error: Solana CLI is not installed or not in PATH."
+    echo "Current PATH: $PATH"
+    echo "Please install Solana CLI or ensure it's in your PATH."
+    
+    # Check for common Solana CLI locations
+    for dir in "$HOME/.local/share/solana/install/active_release/bin" "/usr/local/bin" "/usr/bin"; do
+        if [ -f "$dir/solana" ]; then
+            echo "Found solana in $dir but it's not in PATH. Try adding: export PATH=\"$dir:\$PATH\""
+        fi
+    done
+    
     exit 1
 fi
+
+# Print Solana version for debugging
+echo "Using Solana version: $(solana --version)"
 
 # Check if the tornado-cli.js exists
 if [ ! -f "../client/tornado-cli.js" ]; then
@@ -56,14 +75,30 @@ cd ../scripts
 echo -e "${YELLOW}Step 3: Building and deploying the program...${NC}"
 cd ..
 echo "Building the program..."
+
+# Print Rust and cargo info for debugging
+echo "Rust version: $(rustc --version)"
+echo "Cargo version: $(cargo --version)"
+
+# Check for Solana BPF tools
+echo "Checking for Solana BPF/SBF tools..."
+for cmd in "cargo build-sbf" "cargo build-bpf"; do
+    if command -v $cmd &> /dev/null; then
+        echo "Found $cmd"
+    fi
+done
+
 # Try the newer cargo build-sbf command first, fall back to cargo build-bpf if not available
 if command -v cargo build-sbf &> /dev/null; then
+    echo "Using cargo build-sbf..."
     cargo build-sbf || { echo -e "${RED}Error: Failed to build the program.${NC}"; exit 1; }
 else
+    echo "Using cargo build-bpf..."
     cargo build-bpf || { echo -e "${RED}Error: Failed to build the program.${NC}"; exit 1; }
 fi
 
 echo "Deploying the program..."
+echo "Using solana from: $(which solana)"
 DEPLOY_OUTPUT=$(solana program deploy target/deploy/tornado_svm.so)
 PROGRAM_ID=$(echo "$DEPLOY_OUTPUT" | grep "Program Id:" | awk '{print $3}')
 

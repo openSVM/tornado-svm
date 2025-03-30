@@ -29,6 +29,12 @@ This workflow handles the building, testing, and validation of the Tornado-SVM c
 - Uses the latest Rust toolchain for Solana program development
 - Uses Solana CLI tools for program building and testing
 
+**Solana Environment Setup:**
+- The workflow automatically installs the Solana CLI tools version 1.16.0
+- Adds the Solana binary path to GitHub's PATH environment variable
+- Ensures each step that requires Solana commands has the proper PATH setting
+- Provides enhanced error reporting when Solana tools are not found
+
 ### Tornado Testnet Transaction Test
 
 **File:** `.github/workflows/tornado_testnet_transaction.yml`
@@ -114,3 +120,43 @@ The workflow uses several custom scripts for capturing and analyzing metrics, ex
 - `format_report.js`: Formats metrics into a readable report
 
 Developers can modify these scripts to capture additional metrics or change how they're presented in the report.
+
+## Troubleshooting
+
+### Common Issues
+
+#### Solana CLI Not Found
+
+If your workflow fails with the error `solana: command not found`, check the following:
+
+1. **Verify installation:** Make sure the Solana CLI installation step completed successfully in the logs
+
+2. **Check PATH configuration:** Each step that uses Solana commands should include:
+   ```bash
+   export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+   ```
+
+3. **Installation log:** Look for output from the Solana installation command:
+   ```
+   sh -c "$(curl -sSfL https://release.solana.com/v1.16.0/install)"
+   ```
+
+4. **Enhanced diagnostics:** The `run_tornado_transaction.sh` script now includes enhanced diagnostics when Solana is not found, including checking common installation locations
+
+5. **Fix:** If needed, you can pass the `SOLANA_PATH` environment variable to the script execution step
+
+#### Solana Build Command Not Found
+
+If you encounter issues with Solana build commands (either `cargo build-bpf` or `cargo build-sbf`), check that:
+
+1. The workflow tries both the newer `build-sbf` and older `build-bpf` commands
+2. The Rust toolchain is properly installed
+3. Solana build tools are in the PATH
+
+#### Transaction Failures
+
+If transactions on testnet fail, common causes include:
+
+1. **Airdrop limits:** Testnet has airdrop limits; check if the airdrop succeeded
+2. **Testnet stability:** Testnet can occasionally be unstable; try re-running the workflow
+3. **RPC errors:** If using a custom RPC URL, verify it's working correctly
