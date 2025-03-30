@@ -158,9 +158,23 @@ If your workflow fails with errors about Cargo.lock version compatibility:
    rustup default stable
    ```
 
-2. **Version verification:** The workflow now verifies the Cargo version before proceeding with builds
+2. **Version verification:** The workflow now verifies the Cargo version before proceeding with builds:
+   ```bash
+   cargo --version
+   echo "Using Cargo from: $(which cargo)"
+   ```
 
-3. **Compatibility:** These steps ensure compatibility with Cargo.lock version 4 format
+3. **Automatic regeneration:** The workflow automatically regenerates the Cargo.lock file with the correct format:
+   ```bash
+   # Remove any existing Cargo.lock
+   if [ -f Cargo.lock ]; then
+     rm Cargo.lock
+   fi
+   # Regenerate with latest Cargo version
+   cargo generate-lockfile
+   ```
+
+4. **Compatibility:** These steps ensure compatibility with Cargo.lock version 4 format (used in newer Rust versions)
 
 #### Solana Build Command Not Found
 

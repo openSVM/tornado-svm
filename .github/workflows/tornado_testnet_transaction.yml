@@ -72,7 +72,23 @@ jobs:
         run: |
           rustup update stable
           rustup default stable
+          # Check Cargo version explicitly
           cargo --version
+          echo "Using Cargo from: $(which cargo)"
+          # Ensure we can handle Cargo.lock version 4
+          echo "Cargo can handle lock version: $(cargo --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+
+      - name: Regenerate Cargo.lock
+        run: |
+          # Remove any existing Cargo.lock
+          if [ -f Cargo.lock ]; then
+            echo "Removing existing Cargo.lock"
+            rm Cargo.lock
+          fi
+          # Regenerate Cargo.lock with the latest Cargo version
+          echo "Regenerating Cargo.lock"
+          cargo generate-lockfile
+          echo "Cargo.lock regenerated successfully"
       
       - name: Setup metrics directory
         run: |

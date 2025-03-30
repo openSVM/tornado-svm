@@ -129,7 +129,10 @@ If you encounter Cargo lock file version compatibility issues:
 
 1. The workflow now explicitly updates Cargo to the latest stable version
 2. We've added a specific step that runs `rustup update stable` and `rustup default stable`
-3. This ensures compatibility with Cargo.lock version 4 format
+3. Cargo version is explicitly checked and logged for troubleshooting
+4. The workflow automatically regenerates the Cargo.lock file to ensure it uses a format compatible with the current Cargo version
+5. This ensures compatibility with Cargo.lock version 4 format (used in newer Rust versions)
+6. Any existing Cargo.lock is deleted and freshly regenerated to avoid format conflicts
 
 #### Build Command Not Found
 
