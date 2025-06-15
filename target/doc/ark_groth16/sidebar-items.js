@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["data_structures","generator","prover","r1cs_to_qap","verifier"],"struct":["Groth16"]};

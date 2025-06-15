@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["prepare_verifying_key"]};

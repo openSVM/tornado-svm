@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["evaluate_constraint"],"struct":["LibsnarkReduction"],"trait":["R1CSToQAP"]};
