@@ -97,4 +97,7 @@ typings/
 ERC20Tornado_flat.sol
 ETHTornado_flat.sol
 
+# Typst binaries
+typst-x86_64-unknown-linux-musl/
+
 coverage.json
