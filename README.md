@@ -140,7 +140,15 @@ You can read more about it in [this Medium article](https://medium.com/@tornado.
 
 ## Whitepaper
 
-**[TornadoCash_whitepaper_v1.4.pdf](https://tornado.cash/audits/TornadoCash_whitepaper_v1.4.pdf)**
+**[Tornado Cash Privacy Solution for Solana - Academic Whitepaper (PDF)](whitepaper/tornado-svm-whitepaper.pdf)**
+
+A comprehensive academic analysis of the protocol including:
+- Cryptographic foundations and formal verification
+- Security analysis and attack resistance
+- Performance evaluation and Solana optimizations
+- Implementation details and audit findings
+
+**[TornadoCash_whitepaper_v1.4.pdf](https://tornado.cash/audits/TornadoCash_whitepaper_v1.4.pdf)** (Original Ethereum version)
 
 ## Was it audited?
 
