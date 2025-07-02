@@ -30,7 +30,7 @@
   
   #text(size: 10pt, style: "italic")[
     OpenSVM Research \
-    #link("mailto:rin@opensvm.org")
+    #link("mailto:rin@opensvm.com")
   ]
   
   #v(1em)

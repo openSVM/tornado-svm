@@ -3,8 +3,8 @@
 A privacy solution for Solana based on zkSNARKs. It improves transaction privacy by breaking the on-chain link between the sender and recipient addresses. It uses a Solana program that accepts SOL deposits that can be withdrawn by a different address. Whenever SOL is withdrawn by the new address, there is no way to link the withdrawal to the deposit, ensuring complete privacy.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://img.shields.io/github/workflow/status/your-username/tornado-svm/CI)](https://github.com/your-username/tornado-svm/actions)
-[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://your-username.github.io/tornado-svm/)
+[![Build Status](https://img.shields.io/github/workflow/status/openSVM/tornado-svm/CI)](https://github.com/openSVM/tornado-svm/actions)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://opensvm.github.io/tornado-svm/)
 
 ## Overview
 
@@ -32,7 +32,7 @@ graph TD
     E[User] -->|Use| A
 ```
 
-For more details, see the [Architecture Overview](https://your-username.github.io/tornado-svm/architecture.html).
+For more details, see the [Architecture Overview](https://opensvm.github.io/tornado-svm/architecture.html).
 
 ## Installation
 
@@ -46,7 +46,7 @@ For more details, see the [Architecture Overview](https://your-username.github.i
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/tornado-svm.git
+git clone https://github.com/openSVM/tornado-svm.git
 cd tornado-svm
 
 # Build the Solana program
@@ -86,20 +86,20 @@ npx tornado-cli generate-proof --note <NOTE_PATH> --root <MERKLE_ROOT> --recipie
 npx tornado-cli withdraw --instance <INSTANCE_ADDRESS> --proof <PROOF> --root <MERKLE_ROOT> --nullifier-hash <NULLIFIER_HASH> --recipient <RECIPIENT_ADDRESS>
 ```
 
-For more detailed usage instructions, see the [Quick Start Guide](https://your-username.github.io/tornado-svm/usage/quick-start.html).
+For more detailed usage instructions, see the [Quick Start Guide](https://opensvm.github.io/tornado-svm/usage/quick-start.html).
 
 ## Documentation
 
-Comprehensive documentation is available at [https://your-username.github.io/tornado-svm/](https://your-username.github.io/tornado-svm/).
+Comprehensive documentation is available at [https://opensvm.github.io/tornado-svm/](https://opensvm.github.io/tornado-svm/).
 
 The documentation includes:
 
-- [Architecture Overview](https://your-username.github.io/tornado-svm/architecture.html)
-- [Algorithms](https://your-username.github.io/tornado-svm/algorithms/)
-- [Data Structures](https://your-username.github.io/tornado-svm/data-structures/)
-- [Usage Guide](https://your-username.github.io/tornado-svm/usage/)
-- [API Reference](https://your-username.github.io/tornado-svm/api/)
-- [Development Guide](https://your-username.github.io/tornado-svm/development/)
+- [Architecture Overview](https://opensvm.github.io/tornado-svm/architecture.html)
+- [Algorithms](https://opensvm.github.io/tornado-svm/algorithms/)
+- [Data Structures](https://opensvm.github.io/tornado-svm/data-structures/)
+- [Usage Guide](https://opensvm.github.io/tornado-svm/usage/)
+- [API Reference](https://opensvm.github.io/tornado-svm/api/)
+- [Development Guide](https://opensvm.github.io/tornado-svm/development/)
 
 ## Security
 
